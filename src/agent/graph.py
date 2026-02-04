@@ -31,10 +31,16 @@ def create_architect_graph(llm_client: LLMClient = None):
     """
     Create the LangGraph workflow for the Architect Agent.
 
-    The flow:
-    intake → priority → conflict → deep_dive → pattern → assess_feasibility → generate_blueprint → critic
-                                       ↑                                              ↓
-                                       └──────────── (if confidence < 0.7) ──────────┘
+    The flow (with dynamic entry point):
+    router → [intake|priority|deep_dive|assess_feasibility] → ... → critic
+                                       ↑                              ↓
+                                       └──── (if needs revision) ─────┘
+
+    Router logic:
+    - אם יש blueprint → ממשיך מ-deep_dive
+    - אם יש proposed_architecture → ממשיך מ-assess_feasibility
+    - אם יש requirements → ממשיך מ-priority
+    - אחרת → מתחיל מ-intake
 
     Args:
         llm_client: Optional LLM client instance. If not provided, creates one.
@@ -88,27 +94,77 @@ def create_architect_graph(llm_client: LLMClient = None):
         ctx_dict["_routing_hint"] = next_node
         return ctx_dict
 
-    # Add all nodes
+    # Add all nodes to the graph
     graph.add_node("intake", _intake)
     graph.add_node("priority", _priority)
     graph.add_node("conflict", _conflict)
     graph.add_node("deep_dive", _deep_dive)
     graph.add_node("pattern", _pattern)
-    # שינוי שמות nodes כדי להימנע מהתנגשות עם שדות ב-state
     graph.add_node("assess_feasibility", _feasibility)
     graph.add_node("generate_blueprint", _blueprint)
     graph.add_node("critic", _critic)
 
     # ========================================
+    # ROUTER NODE - מחליט מאיפה להתחיל
+    # ========================================
+
+    def _route_entry(state) -> str:
+        """
+        Router שמחליט מאיפה להתחיל/להמשיך.
+        אם יש כבר blueprint - ממשיכים מ-deep_dive (לאסוף מידע נוסף)
+        אם יש כבר pattern - ממשיכים מ-assess_feasibility
+        אחרת - מתחילים מ-intake
+        """
+        if isinstance(state, dict):
+            state_dict = state
+        else:
+            state_dict = state.model_dump()
+
+        # אם יש blueprint - אנחנו בשלב מתקדם, צריך רק להוסיף מידע
+        if state_dict.get("blueprint"):
+            logger.info("Router: blueprint exists, starting from deep_dive")
+            return "deep_dive"
+
+        # אם יש proposed_architecture - ממשיכים משם
+        if state_dict.get("proposed_architecture"):
+            logger.info("Router: architecture exists, starting from assess_feasibility")
+            return "assess_feasibility"
+
+        # אם יש requirements - ממשיכים מ-priority
+        if state_dict.get("requirements"):
+            logger.info("Router: requirements exist, starting from priority")
+            return "priority"
+
+        # אחרת - מתחילים מההתחלה
+        logger.info("Router: starting from intake")
+        return "intake"
+
+    # Add router as entry point
+    graph.add_node("router", lambda state: state)  # Router לא משנה את ה-state
+
+    # ========================================
     # SET ENTRY POINT
     # ========================================
 
-    graph.set_entry_point("intake")
+    graph.set_entry_point("router")
 
     # ========================================
-    # ADD EDGES (linear flow)
+    # ADD EDGES
     # ========================================
 
+    # Router edges - מנתב לנקודת התחלה מתאימה
+    graph.add_conditional_edges(
+        "router",
+        _route_entry,
+        {
+            "intake": "intake",
+            "priority": "priority",
+            "deep_dive": "deep_dive",
+            "assess_feasibility": "assess_feasibility",
+        }
+    )
+
+    # Linear flow edges
     graph.add_edge("intake", "priority")
     graph.add_edge("priority", "conflict")
     graph.add_edge("conflict", "deep_dive")
