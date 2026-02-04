@@ -31,7 +31,7 @@ async def feasibility_node(
         Tuple of (updated context, reply message)
     """
     logger.info(f"[{ctx.session_id}] Running feasibility node")
-    ctx.current_node = "feasibility"
+    ctx.current_node = "assess_feasibility"
 
     if not ctx.proposed_architecture:
         reply = "⚠️ לא נבחר Pattern עדיין. חוזר לשלב הקודם."

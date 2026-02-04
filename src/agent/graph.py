@@ -33,7 +33,7 @@ def create_architect_graph(llm_client: LLMClient = None):
     Create the LangGraph workflow for the Architect Agent.
 
     The flow:
-    intake → priority → conflict → deep_dive → pattern → feasibility → blueprint → critic
+    intake → priority → conflict → deep_dive → pattern → assess_feasibility → blueprint → critic
                                        ↑                                              ↓
                                        └──────────── (if confidence < 0.7) ──────────┘
 
@@ -95,7 +95,8 @@ def create_architect_graph(llm_client: LLMClient = None):
     graph.add_node("conflict", _conflict)
     graph.add_node("deep_dive", _deep_dive)
     graph.add_node("pattern", _pattern)
-    graph.add_node("feasibility", _feasibility)
+    # שינוי שם node כדי להימנע מהתנגשות עם שדה feasibility ב-state
+    graph.add_node("assess_feasibility", _feasibility)
     graph.add_node("blueprint", _blueprint)
     graph.add_node("critic", _critic)
 
@@ -113,8 +114,8 @@ def create_architect_graph(llm_client: LLMClient = None):
     graph.add_edge("priority", "conflict")
     graph.add_edge("conflict", "deep_dive")
     graph.add_edge("deep_dive", "pattern")
-    graph.add_edge("pattern", "feasibility")
-    graph.add_edge("feasibility", "blueprint")
+    graph.add_edge("pattern", "assess_feasibility")
+    graph.add_edge("assess_feasibility", "blueprint")
     graph.add_edge("blueprint", "critic")
 
     # ========================================
