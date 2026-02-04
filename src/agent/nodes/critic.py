@@ -60,6 +60,25 @@ async def critic_node(
             ctx.waiting_for_user = True
             next_node = None
             reply = _build_missing_info_reply(analysis)
+
+        # כלל 4: confidence בינוני (0.5-0.7) - יציאה עם assumptions, לא לופ
+        elif analysis.confidence_score >= 0.5:
+            logger.info(f"Confidence {analysis.confidence_score:.2f} is acceptable, ending with assumptions")
+            next_node = None
+            reply = _build_approval_reply(analysis)  # מסיימים עם מה שיש
+
+        # כלל 5: אם עברנו יותר מ-2 revisions - מספיק
+        elif ctx.revision_count >= 2:
+            logger.info(f"Already revised {ctx.revision_count} times, ending")
+            next_node = None
+            reply = _build_max_iterations_reply(analysis)
+
+        # כלל 6: אם ה-pattern לא השתנה - אין טעם לחזור
+        elif current_pattern and current_pattern == ctx.last_pattern:
+            logger.info("Pattern unchanged, no point in revising")
+            next_node = None
+            reply = _build_approval_reply(analysis)
+
         else:
             # Need to loop back
             next_node = _determine_loop_target(analysis)
