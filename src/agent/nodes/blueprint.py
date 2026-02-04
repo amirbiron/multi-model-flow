@@ -52,19 +52,32 @@ class RoadmapResponse(BaseModel):
             elif isinstance(phase_value, dict):
                 # מבנה מורכב - מחלץ את המשימות
                 # משתמש ב-phase_key כדי למנוע דריסה של phases עם אותו name
-                tasks = phase_value.get("tasks", [])
-                if not tasks:
+                raw_tasks = phase_value.get("tasks", [])
+
+                # יוצר רשימה חדשה כדי לא לשנות את המקור
+                tasks = []
+
+                if raw_tasks:
+                    if isinstance(raw_tasks, str):
+                        # אם tasks הוא string, מוסיף אותו כמשימה אחת
+                        tasks.append(raw_tasks)
+                    elif isinstance(raw_tasks, list):
+                        # מנרמל את tasks ל-strings
+                        tasks.extend([str(item) for item in raw_tasks])
+                    else:
+                        tasks.append(str(raw_tasks))
+                else:
                     # אם אין tasks, מחפש שדות אחרים עם רשימות
                     for k, v in phase_value.items():
-                        if k not in ("name", "description") and v:
+                        if k not in ("name", "description", "tasks") and v:
                             if isinstance(v, list):
                                 # אם זו רשימה, מוסיף את האלמנטים שלה
                                 tasks.extend([str(item) for item in v])
+                            elif isinstance(v, str):
+                                tasks.append(v)
                             else:
                                 tasks.append(str(v))
-                else:
-                    # מנרמל את tasks ל-strings
-                    tasks = [str(item) for item in tasks]
+
                 normalized[phase_key] = tasks if tasks else ["משימות לא הוגדרו"]
             else:
                 # ערך פשוט - הופך לרשימה
