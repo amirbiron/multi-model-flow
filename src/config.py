@@ -4,7 +4,9 @@ Architect Agent - Configuration
 Application settings loaded from environment variables.
 """
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import List
+import json
 from functools import lru_cache
 
 
@@ -33,6 +35,21 @@ class Settings(BaseSettings):
 
     # ============ CORS ============
     CORS_ORIGINS: List[str] = ["*"]
+
+    # תיקון: טיפול ב-CORS_ORIGINS ריק או לא תקין
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """פרסור CORS_ORIGINS מ-string ל-list."""
+        if isinstance(v, str):
+            if not v or v.strip() == "":
+                return ["*"]
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # אם לא JSON, מפריד לפי פסיקים
+                return [x.strip() for x in v.split(',')]
+        return v
 
     # ============ Agent Settings ============
     MAX_ITERATIONS: int = 5
