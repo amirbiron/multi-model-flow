@@ -55,17 +55,19 @@ async def critic_node(
     next_node = None
 
     if analysis.confidence_score < 0.7 and ctx.iteration_count < ctx.max_iterations:
-        # Need to loop back - מעדכן revision_count
-        next_node = _determine_loop_target(analysis)
-        if next_node:  # רק אם באמת חוזרים אחורה
-            ctx.revision_count += 1
-            # מעדכן last_pattern רק אחרי שהוחלט לחזור אחורה
-            ctx.last_pattern = current_pattern
-        # אם הסיבה היא חוסר מידע - מסמן שצריך קלט מהמשתמש
+        # בודק קודם אם הסיבה היא חוסר מידע - לא חוזרים אחורה, מחכים למשתמש
         if analysis.low_confidence_reason == "missing_info":
             ctx.waiting_for_user = True
-            next_node = None  # לא חוזרים אחורה, מחכים למשתמש
-        reply = _build_loop_reply(analysis, next_node)
+            next_node = None
+            reply = _build_missing_info_reply(analysis)
+        else:
+            # Need to loop back
+            next_node = _determine_loop_target(analysis)
+            if next_node:  # רק אם באמת חוזרים אחורה
+                ctx.revision_count += 1
+                # מעדכן last_pattern רק אחרי שהוחלט לחזור אחורה
+                ctx.last_pattern = current_pattern
+            reply = _build_loop_reply(analysis, next_node)
     elif ctx.iteration_count >= ctx.max_iterations:
         # Max iterations reached
         reply = _build_max_iterations_reply(analysis)
@@ -156,6 +158,29 @@ def _determine_loop_target(analysis: CriticAnalysis) -> str:
         return "conflict"
     else:
         return "pattern"
+
+
+def _build_missing_info_reply(analysis: CriticAnalysis) -> str:
+    """Build reply when missing info requires user input."""
+
+    parts = [
+        f"## ❓ נדרש מידע נוסף\n",
+        f"**רמת ביטחון:** {analysis.confidence_score:.0%}\n",
+        f"**סיבה:** חסר מידע קריטי להמשך התכנון\n",
+    ]
+
+    if analysis.missing_info:
+        parts.append(f"\n**מה חסר:**\n{analysis.missing_info}\n")
+
+    if analysis.weaknesses:
+        parts.append("**נקודות שדורשות התייחסות:**")
+        for w in analysis.weaknesses[:3]:
+            parts.append(f"  • {w}")
+        parts.append("")
+
+    parts.append("אנא ספק את המידע הנדרש כדי שאוכל להמשיך בתכנון.")
+
+    return "\n".join(parts)
 
 
 def _build_loop_reply(analysis: CriticAnalysis, next_node: str) -> str:

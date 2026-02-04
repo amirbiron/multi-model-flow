@@ -253,6 +253,11 @@ async def continue_conversation(
             process_conflict_response(current_ctx, user_message)
         elif current_ctx.current_node == "deep_dive":
             process_deep_dive_response(current_ctx, user_message)
+        elif current_ctx.current_node == "critic":
+            # המשתמש סיפק מידע נוסף שהמבקר ביקש
+            # מוסיפים את המידע ל-open_questions שנפתרו ומחזירים ל-deep_dive
+            current_ctx.open_questions.append(f"תשובת משתמש: {user_message}")
+            current_ctx.current_node = "deep_dive"  # חוזרים לאסוף את המידע החדש
 
         current_ctx.waiting_for_user = False
 
