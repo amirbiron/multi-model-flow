@@ -9,9 +9,10 @@ pydantic==2.6.1
 pydantic-settings==2.1.0
 
 # LangGraph & LLM
+# תיקון: langgraph 0.0.43 דורש langchain-core>=0.1.46
 langgraph==0.0.43
 langchain-anthropic==0.1.4
-langchain-core==0.1.27
+langchain-core==0.1.46
 anthropic==0.18.1
 
 # Database
