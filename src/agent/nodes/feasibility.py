@@ -81,10 +81,17 @@ async def _assess_feasibility(
         for c in ctx.constraints
     ]) if ctx.constraints else "אין"
 
+    # הדרישות המקוריות - לבדיקת over-engineering
+    requirements_str = "\n".join([
+        f"- {r.description}"
+        for r in ctx.requirements
+    ]) if ctx.requirements else "לא צוינו"
+
     prompt = FEASIBILITY_PROMPT.format(
         pattern=pattern,
         tech_stack=tech_stack_str,
-        constraints=constraints_str
+        constraints=constraints_str,
+        original_requirements=requirements_str
     )
 
     try:

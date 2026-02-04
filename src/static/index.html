@@ -39,12 +39,24 @@
         .message.assistant {
             background: #1f4068; align-self: flex-end;
             border: 1px solid #e94560;
+            position: relative;
         }
         .message pre {
             background: #0a0a15; padding: 0.5rem;
             border-radius: 6px; overflow-x: auto;
             margin-top: 0.5rem; font-size: 0.85rem;
         }
+        /* כפתור העתק */
+        .copy-btn {
+            position: absolute; top: 0.5rem; left: 0.5rem;
+            background: #0f3460; border: 1px solid #e94560;
+            color: #e94560; padding: 0.3rem 0.6rem;
+            border-radius: 4px; font-size: 0.75rem;
+            cursor: pointer; opacity: 0.7;
+            transition: opacity 0.2s, background 0.2s;
+        }
+        .copy-btn:hover { opacity: 1; background: #1a4a80; }
+        .copy-btn.copied { background: #2d6a4f; border-color: #2d6a4f; color: white; }
 
         /* טופס שליחה */
         .input-area {
@@ -167,6 +179,43 @@
             return div.innerHTML;
         }
 
+        // פונקציית העתקה ללוח
+        async function copyToClipboard(text, button) {
+            try {
+                await navigator.clipboard.writeText(text);
+                button.textContent = 'הועתק!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = 'העתק';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                // fallback לדפדפנים ישנים
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                if (success) {
+                    button.textContent = 'הועתק!';
+                    button.classList.add('copied');
+                    setTimeout(() => {
+                        button.textContent = 'העתק';
+                        button.classList.remove('copied');
+                    }, 2000);
+                } else {
+                    button.textContent = 'נכשל';
+                    button.style.borderColor = '#c73e54';
+                    setTimeout(() => {
+                        button.textContent = 'העתק';
+                        button.style.borderColor = '';
+                    }, 2000);
+                }
+            }
+        }
+
         // הוספת הודעה לצ'אט
         function addMessage(content, role) {
             const messages = document.getElementById('messages');
@@ -180,6 +229,16 @@
             const safeContent = escapeHtml(content);
             div.innerHTML = safeContent.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre>$2</pre>')
                                        .replace(/\n/g, '<br>');
+
+            // הוספת כפתור העתק להודעות assistant
+            if (role === 'assistant') {
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = 'העתק';
+                copyBtn.onclick = () => copyToClipboard(content, copyBtn);
+                div.appendChild(copyBtn);
+            }
+
             messages.appendChild(div);
             messages.scrollTop = messages.scrollHeight;
         }

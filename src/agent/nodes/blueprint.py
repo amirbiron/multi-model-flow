@@ -158,12 +158,19 @@ async def _generate_summary(ctx: ProjectContext, llm: LLMClient) -> str:
     if ctx.shortlist:
         process_points.append(f"נבחנו {len(ctx.shortlist)} Patterns")
 
+    # הדרישות המקוריות - למניעת המצאות!
+    requirements_str = "\n".join([
+        f"- {r.description}"
+        for r in ctx.requirements
+    ]) if ctx.requirements else "לא צוינו דרישות מפורשות"
+
     prompt = BLUEPRINT_SUMMARY_PROMPT.format(
         project_name=ctx.project_name or "הפרויקט",
         pattern=pattern,
         tech_stack=tech_stack_str,
         priorities=priorities_str,
-        process_summary="\n".join(process_points) or "תהליך סטנדרטי"
+        process_summary="\n".join(process_points) or "תהליך סטנדרטי",
+        original_requirements=requirements_str
     )
 
     try:
