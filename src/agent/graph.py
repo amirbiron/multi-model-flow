@@ -58,37 +58,52 @@ def create_architect_graph(llm_client: LLMClient = None):
     # ADD NODES
     # ========================================
 
+    # פונקציית עזר להמרת state ל-ProjectContext
+    def _to_ctx(state) -> ProjectContext:
+        """ממיר dict ל-ProjectContext אם צריך."""
+        if isinstance(state, ProjectContext):
+            return state
+        return ProjectContext.model_validate(state)
+
     # Wrap nodes to pass LLM client
-    async def _intake(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply = await intake_node(state, llm_client)
+    async def _intake(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply = await intake_node(ctx, llm_client)
         return ctx.model_dump()
 
-    async def _priority(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply = await priority_node(state, llm_client)
+    async def _priority(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply = await priority_node(ctx, llm_client)
         return ctx.model_dump()
 
-    async def _conflict(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply = await conflict_node(state, llm_client)
+    async def _conflict(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply = await conflict_node(ctx, llm_client)
         return ctx.model_dump()
 
-    async def _deep_dive(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply = await deep_dive_node(state, llm_client)
+    async def _deep_dive(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply = await deep_dive_node(ctx, llm_client)
         return ctx.model_dump()
 
-    async def _pattern(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply = await pattern_node(state, llm_client)
+    async def _pattern(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply = await pattern_node(ctx, llm_client)
         return ctx.model_dump()
 
-    async def _feasibility(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply = await feasibility_node(state, llm_client)
+    async def _feasibility(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply = await feasibility_node(ctx, llm_client)
         return ctx.model_dump()
 
-    async def _blueprint(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply = await blueprint_node(state, llm_client)
+    async def _blueprint(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply = await blueprint_node(ctx, llm_client)
         return ctx.model_dump()
 
-    async def _critic(state: ProjectContext) -> Dict[str, Any]:
-        ctx, reply, next_node = await critic_node(state, llm_client)
+    async def _critic(state) -> Dict[str, Any]:
+        ctx = _to_ctx(state)
+        ctx, reply, next_node = await critic_node(ctx, llm_client)
         # שומר את הינט הניתוב ב-dict (לא ב-model כי underscore fields לא עוברים serialization)
         ctx_dict = ctx.model_dump()
         ctx_dict["_routing_hint"] = next_node
@@ -139,8 +154,14 @@ def create_architect_graph(llm_client: LLMClient = None):
         logger.info("Router: starting from intake")
         return "intake"
 
-    # Add router as entry point
-    graph.add_node("router", lambda state: state)  # Router לא משנה את ה-state
+    # Add router as entry point - מוודא שמחזיר dict
+    def _router_node(state):
+        """Router node - מחזיר את ה-state כ-dict."""
+        if isinstance(state, dict):
+            return state
+        return state.model_dump()
+
+    graph.add_node("router", _router_node)
 
     # ========================================
     # SET ENTRY POINT
