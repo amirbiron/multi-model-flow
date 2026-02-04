@@ -5,8 +5,11 @@ Main application entry point with lifespan management.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import logging
+from pathlib import Path
 
 from .routes import router
 from ..db.mongodb import MongoDB
@@ -51,17 +54,16 @@ app.add_middleware(
 )
 
 # Include routes
-app.include_router(router, prefix="/api/v1")
+app.include_router(router, prefix="/api")
+
+# נתיב לתיקיית הקבצים הסטטיים
+STATIC_DIR = Path(__file__).parent.parent / "static"
 
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "status": "running"
-    }
+    """מחזיר את דף הבית (ממשק הווב)."""
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/health")
