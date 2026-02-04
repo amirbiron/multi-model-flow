@@ -23,11 +23,21 @@ class Settings(BaseSettings):
     MONGODB_MAX_POOL_SIZE: int = 10
     MONGODB_MIN_POOL_SIZE: int = 1
 
+    # ============ LLM Provider Selection ============
+    # בחירת ספק LLM: "claude" או "gemini"
+    LLM_PROVIDER: str = "claude"
+
     # ============ Claude API ============
-    ANTHROPIC_API_KEY: str
+    ANTHROPIC_API_KEY: str = ""
     CLAUDE_MODEL: str = "claude-sonnet-4-20250514"
     CLAUDE_MAX_TOKENS: int = 4096
     CLAUDE_TEMPERATURE: float = 0.7
+
+    # ============ Gemini API ============
+    GOOGLE_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MAX_TOKENS: int = 4096
+    GEMINI_TEMPERATURE: float = 0.7
 
     # ============ Redis (Optional) ============
     REDIS_URL: str = ""
