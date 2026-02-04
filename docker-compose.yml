@@ -1,0 +1,64 @@
+# ================================
+# Architect Agent - Docker Compose
+# ================================
+# For local development with MongoDB
+
+version: '3.8'
+
+services:
+  # Main API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=architect_agent
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      - mongodb
+    volumes:
+      - ./src:/app/src:ro  # Hot reload in dev
+    restart: unless-stopped
+
+  # MongoDB
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - with-redis
+
+  # Optional: Mongo Express for DB management
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017
+      - ME_CONFIG_BASICAUTH=false
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    profiles:
+      - dev-tools
+
+volumes:
+  mongodb_data:
+  redis_data:
