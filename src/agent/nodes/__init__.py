@@ -11,6 +11,7 @@ from .pattern import pattern_node
 from .feasibility import feasibility_node
 from .blueprint import blueprint_node
 from .critic import critic_node, route_from_critic
+from .ask_user import ask_user_node, process_user_answers
 
 __all__ = [
     "intake_node",
@@ -25,4 +26,6 @@ __all__ = [
     "blueprint_node",
     "critic_node",
     "route_from_critic",
+    "ask_user_node",
+    "process_user_answers",
 ]

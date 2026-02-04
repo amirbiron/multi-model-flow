@@ -197,6 +197,15 @@ class ProjectContext(BaseModel):
     last_pattern: Optional[str] = None  # ה-pattern האחרון שנבחר
     last_confidence_reason: Optional[str] = None  # סיבת confidence נמוך אחרונה
 
+    # ---- Facts & Questions (למניעת לופים ומעקב מידע) ----
+    facts: Dict[str, Any] = Field(default_factory=dict)  # עובדות שנאספו מהמשתמש
+    asked_questions: List[str] = Field(default_factory=list)  # שאלות שכבר נשאלו
+    info_version: int = 0  # גרסת המידע - מתקדם בכל פעם שיש מידע חדש
+    last_info_version_used: int = 0  # גרסת המידע האחרונה שבה רצו המומחים
+
+    # ---- Forced Pattern (לאחר swap_option) ----
+    forced_pattern: Optional[str] = None  # אם נקבע, ה-Generator חייב לבחור בזה
+
     # ---- Internal flags ----
     waiting_for_user: bool = False
     error_message: Optional[str] = None
@@ -227,6 +236,25 @@ class ProjectContext(BaseModel):
     def has_unresolved_conflicts(self) -> bool:
         """Check for unresolved conflicts."""
         return any(not c.resolved for c in self.conflicts)
+
+    def add_fact(self, key: str, value: Any) -> None:
+        """הוספת עובדה חדשה ועדכון גרסת המידע."""
+        self.facts[key] = value
+        self.info_version += 1
+        self.updated_at = datetime.utcnow()
+
+    def add_asked_question(self, question: str) -> None:
+        """הוספת שאלה לרשימת השאלות שכבר נשאלו."""
+        if question not in self.asked_questions:
+            self.asked_questions.append(question)
+
+    def has_new_info(self) -> bool:
+        """בודק אם יש מידע חדש מאז הריצה האחרונה."""
+        return self.info_version > self.last_info_version_used
+
+    def mark_info_used(self) -> None:
+        """מסמן שהמידע הנוכחי נוצל."""
+        self.last_info_version_used = self.info_version
 
     def get_priority_weights(self) -> Dict[str, float]:
         """Get priority weights from ranking or profile."""
@@ -297,19 +325,87 @@ class PatternSelection(BaseModel):
     recommendation: str
 
 
+class ParsedAnswer(BaseModel):
+    """תשובה מפורסרת מהמשתמש."""
+    id: str
+    value: str
+    normalized_key: str
+    normalized_value: Any
+
+
+class ParsedAnswers(BaseModel):
+    """רשימת תשובות מפורסרות."""
+    answers: List[ParsedAnswer] = Field(default_factory=list)
+
+
+class CriticQuestion(BaseModel):
+    """שאלה שהמבקר מבקש לשאול את המשתמש."""
+    question: str
+    impact: Literal["high", "medium", "low"] = "medium"
+    why_it_matters: str
+
+
+class SwapTarget(BaseModel):
+    """יעד החלפת Pattern."""
+    pattern: Optional[str] = None
+    why: Optional[str] = None
+
+
+class FailureMode(BaseModel):
+    """מצב כשל פוטנציאלי."""
+    failure: str
+    severity: Literal["low", "medium", "high"] = "medium"
+    mitigation: str
+
+
+class MustFix(BaseModel):
+    """בעיה שחייבים לתקן."""
+    issue: str
+    why: str
+    suggested_change: str
+
+
 class CriticAnalysis(BaseModel):
-    """LLM response for critic node."""
+    """
+    LLM response for critic node.
+
+    מחזיר verdict ברור במקום "revise_pattern":
+    - accept: לאשר את ה-Blueprint
+    - accept_with_notes: לאשר עם הערות/אזהרות
+    - ask_user: חסר מידע, חובה לשאול
+    - swap_option: טעות בבחירה, להחליף לחלופה קיימת
+    """
     confidence_score: float = Field(ge=0, le=1)
-    strengths: List[str]
-    weaknesses: List[str]
-    missing_info: Optional[str] = None
-    conflicts: List[str] = Field(default_factory=list)
-    recommendation: Literal["approve", "revise_pattern", "need_info", "resolve_conflicts"]
-    # סיבת confidence נמוך - עוזר להחליט איך להמשיך
+    strengths: List[str] = Field(default_factory=list)
+    weaknesses: List[str] = Field(default_factory=list)
+
+    # verdict ברור - זה מה שמנתב את הגרף
+    verdict: Literal["accept", "accept_with_notes", "ask_user", "swap_option"] = "accept"
+
+    # סיבת confidence נמוך
     low_confidence_reason: Optional[Literal[
         "missing_info",           # חסר מידע - צריך לשאול משתמש
         "conflicting_constraints", # אילוצים סותרים
         "weak_justification",      # הצדקה חלשה
-        "wrong_pattern",           # pattern לא מתאים
-        "risks_acknowledged"       # יש סיכונים אבל מודעים להם
+        "wrong_choice",           # בחירה לא נכונה
+        "other"                   # סיבה אחרת
     ]] = None
+
+    # בעיות שחייבים לתקן
+    must_fix: List[MustFix] = Field(default_factory=list)
+
+    # שאלות לשאול את המשתמש (רק אם verdict=ask_user)
+    questions_to_ask: List[CriticQuestion] = Field(default_factory=list)
+
+    # יעד החלפה (רק אם verdict=swap_option)
+    swap_to: Optional[SwapTarget] = None
+
+    # מצבי כשל פוטנציאליים
+    top_failure_modes: List[FailureMode] = Field(default_factory=list)
+
+    # שדות ישנים לתאימות אחורה
+    missing_info: Optional[str] = None
+    conflicts: List[str] = Field(default_factory=list)
+
+    # המלצה ישנה - נשמר לתאימות אחורה, אבל verdict הוא העיקרי
+    recommendation: Literal["approve", "revise_pattern", "need_info", "resolve_conflicts"] = "approve"
