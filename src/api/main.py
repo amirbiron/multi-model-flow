@@ -11,9 +11,17 @@ from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 
+from .activity_reporter import create_reporter
 from .routes import router
 from ..db.mongodb import MongoDB
 from ..config import settings
+
+# יצירת reporter לדיווח פעילות
+reporter = create_reporter(
+    mongodb_uri="mongodb+srv://mumin:M43M2TFgLfGvhBwY@muminai.tm6x81b.mongodb.net/?retryWrites=true&w=majority&appName=muminAI",
+    service_id="srv-d618rg7gi27c73bris40",
+    service_name="Architect-agent"
+)
 
 # Configure logging
 logging.basicConfig(
