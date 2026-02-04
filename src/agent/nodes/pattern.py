@@ -61,6 +61,8 @@ async def pattern_node(
     # ========================================
     forced_pattern = ctx.forced_pattern
     if forced_pattern:
+        # נרמול השם - מתאים לפורמט הפנימי של patterns
+        forced_pattern = forced_pattern.lower().replace(" ", "_")
         logger.info(f"Using forced pattern from swap_option: {forced_pattern}")
         # מנקה את forced_pattern אחרי שימוש כדי לא להשפיע על ריצות עתידיות
         ctx.forced_pattern = None

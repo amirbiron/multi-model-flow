@@ -243,6 +243,23 @@ class ProjectContext(BaseModel):
         self.info_version += 1
         self.updated_at = datetime.utcnow()
 
+    def add_requirement(self, requirement: "Requirement") -> None:
+        """הוספת דרישה חדשה ועדכון גרסת המידע."""
+        self.requirements.append(requirement)
+        self.info_version += 1
+        self.updated_at = datetime.utcnow()
+
+    def add_constraint(self, constraint: "Constraint") -> None:
+        """הוספת אילוץ חדש ועדכון גרסת המידע."""
+        self.constraints.append(constraint)
+        self.info_version += 1
+        self.updated_at = datetime.utcnow()
+
+    def bump_info_version(self) -> None:
+        """העלאת גרסת המידע - לשימוש כשיש עדכון משמעותי אחר."""
+        self.info_version += 1
+        self.updated_at = datetime.utcnow()
+
     def add_asked_question(self, question: str) -> None:
         """הוספת שאלה לרשימת השאלות שכבר נשאלו."""
         if question not in self.asked_questions:

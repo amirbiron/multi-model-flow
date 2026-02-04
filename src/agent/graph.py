@@ -121,8 +121,11 @@ def create_architect_graph(llm_client: LLMClient = None):
         if isinstance(state, dict) and "_pending_questions" in state:
             from .state import CriticQuestion
             questions = [CriticQuestion(**q) for q in state["_pending_questions"]]
-        ctx, reply = await ask_user_node(ctx, llm_client, questions)
-        return ctx.model_dump()
+        ctx, reply, should_continue = await ask_user_node(ctx, llm_client, questions)
+        ctx_dict = ctx.model_dump()
+        # אם צריך להמשיך (אין שאלות חדשות), מעביר hint לגרף
+        ctx_dict["_ask_user_should_continue"] = should_continue
+        return ctx_dict
 
     # Add all nodes to the graph
     graph.add_node("intake", _intake)
@@ -253,8 +256,35 @@ def create_architect_graph(llm_client: LLMClient = None):
         }
     )
 
-    # ask_user מסיים כאן ומחכה למשתמש - לא ממשיך אוטומטית
-    graph.add_edge("ask_user", END)
+    # ask_user - conditional routing based on should_continue
+    def _route_from_ask_user(state) -> str:
+        """
+        Routing function for ask_user node.
+        אם יש שאלות חדשות - מחכים למשתמש (END).
+        אם אין שאלות חדשות - ממשיכים לתהליך (generate_blueprint).
+        """
+        if isinstance(state, dict):
+            state_dict = state
+        else:
+            state_dict = state.model_dump()
+
+        should_continue = state_dict.get("_ask_user_should_continue", False)
+
+        if should_continue:
+            logger.info("ask_user: no new questions, continuing to generate_blueprint")
+            return "continue"
+        else:
+            logger.info("ask_user: waiting for user response")
+            return "end"
+
+    graph.add_conditional_edges(
+        "ask_user",
+        _route_from_ask_user,
+        {
+            "continue": "generate_blueprint",  # אין שאלות חדשות - ממשיכים
+            "end": END                         # יש שאלות - מחכים למשתמש
+        }
+    )
 
     # ========================================
     # COMPILE WITH CHECKPOINTER

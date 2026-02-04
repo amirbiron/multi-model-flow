@@ -21,7 +21,7 @@ async def ask_user_node(
     ctx: ProjectContext,
     llm: LLMClient,
     critic_questions: List[CriticQuestion] = None
-) -> Tuple[ProjectContext, str]:
+) -> Tuple[ProjectContext, str, bool]:
     """
     Ask User Node - מציג שאלות למשתמש כשחסר מידע קריטי.
 
@@ -37,7 +37,8 @@ async def ask_user_node(
         critic_questions: שאלות מה-Critic (אם לא סופק, לוקח מ-state)
 
     Returns:
-        Tuple of (updated context, reply message)
+        Tuple of (updated context, reply message, should_continue)
+        - should_continue: True אם צריך להמשיך את הגרף (אין שאלות חדשות)
     """
     logger.info(f"[{ctx.session_id}] Running ask_user node")
     ctx.current_node = "ask_user"
@@ -53,7 +54,10 @@ async def ask_user_node(
         logger.info("No new questions to ask, proceeding with current info")
         reply = _build_no_questions_reply()
         ctx.waiting_for_user = False
-        return ctx, reply
+        # שומר את ההודעה להיסטוריה
+        ctx.add_message("assistant", reply)
+        # מחזיר should_continue=True כדי שהגרף ימשיך
+        return ctx, reply, True
 
     # בניית הודעת השאלות
     reply = await _build_questions_message(ctx, llm, filtered_questions)
@@ -76,7 +80,8 @@ async def ask_user_node(
 
     logger.info(f"[{ctx.session_id}] Asked {len(filtered_questions)} questions, waiting for user")
 
-    return ctx, reply
+    # מחזיר should_continue=False כדי שהגרף יעצור ויחכה למשתמש
+    return ctx, reply, False
 
 
 async def process_user_answers(
@@ -101,9 +106,8 @@ async def process_user_answers(
     pending_questions = _get_pending_questions(ctx)
 
     if not pending_questions:
-        # אין שאלות ממתינות - פשוט מוסיפים את ההודעה להיסטוריה
-        logger.warning("No pending questions found, adding message to history")
-        ctx.add_message("user", user_message)
+        # אין שאלות ממתינות - לא מוסיפים הודעה כי continue_conversation כבר הוסיף אותה
+        logger.warning("No pending questions found, skipping parse (message already in history)")
         return ctx
 
     # פירסור התשובות עם LLM
