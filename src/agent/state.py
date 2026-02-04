@@ -112,7 +112,11 @@ class TechStackComponent(BaseModel):
         "messaging", "auth", "ci_cd", "monitoring", "cloud"
     ]
     technology: str
-    reason: str
+    reason: str  # נשאר לתאימות אחורה
+    justified_by: Optional[str] = None  # REQUIREMENT/NFR/CONSTRAINT/BASELINE_ENTERPRISE
+    classification: Optional[Literal[
+        "REQUIRED", "BASELINE_ENTERPRISE", "OPTIONAL", "FUTURE"
+    ]] = None
     alternatives: List[str] = Field(default_factory=list)
 
 
@@ -133,7 +137,9 @@ class ADR(BaseModel):
     title: str
     context: str
     decision: str
+    justified_by: Optional[str] = None  # REQUIREMENT/NFR/CONSTRAINT/BASELINE_ENTERPRISE
     consequences: List[str]
+    alternatives_considered: List[str] = Field(default_factory=list)
 
 
 class Blueprint(BaseModel):
@@ -402,6 +408,7 @@ class CriticAnalysis(BaseModel):
     # סיבת confidence נמוך
     low_confidence_reason: Optional[Literal[
         "missing_info",           # חסר מידע - צריך לשאול משתמש
+        "over_engineering",       # פתרונות מורכבים מדי בלי הצדקה
         "conflicting_constraints", # אילוצים סותרים
         "weak_justification",      # הצדקה חלשה
         "wrong_choice",           # בחירה לא נכונה
