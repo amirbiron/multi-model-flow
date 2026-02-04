@@ -201,6 +201,11 @@ class MultiProviderLLM(BaseLLMClient):
             else:
                 raise ValueError(f"Unknown provider: {provider}")
         except Exception as e:
+            # אם Anthropic נכשל - אין fallback, מעלים את השגיאה
+            if provider == "anthropic":
+                logger.error(f"Anthropic failed with no fallback: {e}")
+                raise
+            # אחרת - fallback ל-Claude
             logger.warning(f"{provider} failed: {e}, falling back to Claude")
             return await self._call_anthropic(
                 settings.GENERATOR_MODEL,
