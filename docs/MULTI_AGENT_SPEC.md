@@ -132,11 +132,11 @@ class BaseLLMClient(ABC):
 OPENAI_API_KEY: str = ""           # ל-Critic (GPT)
 GOOGLE_API_KEY: str = ""           # ל-Cost/Ops (Gemini)
 
-# מודלים ספציפיים לכל סוכן
-GENERATOR_MODEL: str = "claude-sonnet-4-20250514"     # Claude
+# מודלים ספציפיים לכל סוכן  ### דרוש עדכון מודלים עדכני יותר
+GENERATOR_MODEL: str = "claude-sonnet-4-5-20250929"     # Claude
 CRITIC_MODEL: str = "gpt-4o"                          # OpenAI
-COST_OPS_MODEL: str = "gemini-1.5-pro"               # Google
-SYNTHESIZER_MODEL: str = "claude-sonnet-4-20250514"  # Claude
+COST_OPS_MODEL: str = "gemini-pro"               # Google
+SYNTHESIZER_MODEL: str = "claude-sonnet-4-5-20250929"  # Claude
 ```
 
 ### 3. יצירת src/llm/multi_provider.py - Client לכל הספקים
