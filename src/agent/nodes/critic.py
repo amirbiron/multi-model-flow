@@ -246,6 +246,7 @@ def _build_ask_user_reply(analysis: CriticAnalysis) -> str:
     if analysis.low_confidence_reason:
         reason_texts = {
             "missing_info": "חסר מידע קריטי",
+            "over_engineering": "הפתרון מורכב מדי ביחס לדרישות",
             "conflicting_constraints": "יש אילוצים סותרים",
             "weak_justification": "הנימוקים לא מספיק חזקים",
             "wrong_choice": "ייתכן שיש בחירה טובה יותר",

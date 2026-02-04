@@ -509,21 +509,22 @@ TECH_STACK_PROMPT = """המלץ על Tech Stack מתאים (Enterprise mode).
 - BASELINE_ENTERPRISE: תקן ארגוני (logging, auth, secrets)
 
 ## המלץ על טכנולוגיה לכל שכבה (דלג על לא רלוונטיות):
-1. **Frontend** - אם רלוונטי (justified_by: REQUIREMENT)
-2. **Backend** - שפה ו-framework (justified_by: CONSTRAINT או REQUIREMENT)
-3. **Database** - primary database (justified_by: REQUIREMENT או NFR)
-4. **Cache** - רק אם latency < 100ms נדרש (justified_by: NFR)
-5. **Messaging** - רק אם event propagation נדרש (justified_by: REQUIREMENT)
-6. **Auth** - פתרון אימות (justified_by: REQUIREMENT או BASELINE_ENTERPRISE)
-7. **CI/CD** - pipeline פשוט (justified_by: BASELINE_ENTERPRISE)
-8. **Observability** - logging + metrics (justified_by: BASELINE_ENTERPRISE)
-9. **Deployment** - container platform (justified_by: NFR או CONSTRAINT)
+1. **frontend** - אם רלוונטי (justified_by: REQUIREMENT)
+2. **backend** - שפה ו-framework (justified_by: CONSTRAINT או REQUIREMENT)
+3. **database** - primary database (justified_by: REQUIREMENT או NFR)
+4. **cache** - רק אם latency < 100ms נדרש (justified_by: NFR)
+5. **messaging** - רק אם event propagation נדרש (justified_by: REQUIREMENT)
+6. **auth** - פתרון אימות (justified_by: REQUIREMENT או BASELINE_ENTERPRISE)
+7. **ci_cd** - pipeline פשוט (justified_by: BASELINE_ENTERPRISE)
+8. **monitoring** - logging + metrics (justified_by: BASELINE_ENTERPRISE)
+9. **cloud** - container platform (justified_by: NFR או CONSTRAINT)
 
 ## פורמט תשובה לכל שכבה:
 ```
-layer: Backend
+layer: backend
 technology: FastAPI + Python 3.11
-justified_by: CONSTRAINT (נדרש Python + async)
+reason: נדרש Python + async לפי אילוצי הפרויקט
+justified_by: CONSTRAINT
 classification: REQUIRED
 alternatives: [Flask, Django]
 ```"""
