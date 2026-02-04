@@ -49,8 +49,7 @@ async def critic_node(
     ctx.last_confidence_reason = analysis.low_confidence_reason
 
     # שומר את ה-pattern הנוכחי למעקב
-    if ctx.proposed_architecture:
-        ctx.last_pattern = ctx.proposed_architecture.pattern
+    current_pattern = ctx.proposed_architecture.pattern if ctx.proposed_architecture else None
 
     # Determine next action
     next_node = None
@@ -60,6 +59,12 @@ async def critic_node(
         next_node = _determine_loop_target(analysis)
         if next_node:  # רק אם באמת חוזרים אחורה
             ctx.revision_count += 1
+            # מעדכן last_pattern רק אחרי שהוחלט לחזור אחורה
+            ctx.last_pattern = current_pattern
+        # אם הסיבה היא חוסר מידע - מסמן שצריך קלט מהמשתמש
+        if analysis.low_confidence_reason == "missing_info":
+            ctx.waiting_for_user = True
+            next_node = None  # לא חוזרים אחורה, מחכים למשתמש
         reply = _build_loop_reply(analysis, next_node)
     elif ctx.iteration_count >= ctx.max_iterations:
         # Max iterations reached
@@ -268,10 +273,9 @@ def route_from_critic(ctx: ProjectContext) -> str:
     # כלל 5: confidence נמוך (<0.5) - בודקים אם יש מה לעשות
     reason = ctx.last_confidence_reason
 
-    # אם הסיבה היא חוסר מידע - צריך לשאול משתמש, לא לחזור אחורה
+    # אם הסיבה היא חוסר מידע - כבר טופל ב-critic_node (waiting_for_user=True)
     if reason == "missing_info":
         logger.info("Low confidence due to missing info, need user input")
-        ctx.waiting_for_user = True
         return "end"
 
     # אם עברנו יותר מ-2 revisions - מספיק, מסיימים עם מה שיש

@@ -84,9 +84,10 @@ def create_architect_graph(llm_client: LLMClient = None):
 
     async def _critic(state: ProjectContext) -> Dict[str, Any]:
         ctx, reply, next_node = await critic_node(state, llm_client)
-        # שומר את הינט הניתוב ב-state
-        ctx._routing_hint = next_node
-        return ctx.model_dump()
+        # שומר את הינט הניתוב ב-dict (לא ב-model כי underscore fields לא עוברים serialization)
+        ctx_dict = ctx.model_dump()
+        ctx_dict["_routing_hint"] = next_node
+        return ctx_dict
 
     # Add all nodes
     graph.add_node("intake", _intake)
