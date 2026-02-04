@@ -47,17 +47,25 @@ class RoadmapResponse(BaseModel):
         normalized = {}
         for phase_key, phase_value in self.phases.items():
             if isinstance(phase_value, list):
-                # כבר בפורמט הנכון
-                normalized[phase_key] = phase_value
+                # מנרמל כל אלמנט ברשימה ל-string
+                normalized[phase_key] = [str(item) for item in phase_value]
             elif isinstance(phase_value, dict):
                 # מבנה מורכב - מחלץ את המשימות
-                name = phase_value.get("name", phase_key)
+                # משתמש ב-phase_key כדי למנוע דריסה של phases עם אותו name
                 tasks = phase_value.get("tasks", [])
                 if not tasks:
-                    # אם אין tasks, ממיר את שאר השדות לרשימה
-                    tasks = [str(v) for k, v in phase_value.items()
-                             if k not in ("name", "description") and v]
-                normalized[name] = tasks if tasks else ["משימות לא הוגדרו"]
+                    # אם אין tasks, מחפש שדות אחרים עם רשימות
+                    for k, v in phase_value.items():
+                        if k not in ("name", "description") and v:
+                            if isinstance(v, list):
+                                # אם זו רשימה, מוסיף את האלמנטים שלה
+                                tasks.extend([str(item) for item in v])
+                            else:
+                                tasks.append(str(v))
+                else:
+                    # מנרמל את tasks ל-strings
+                    tasks = [str(item) for item in tasks]
+                normalized[phase_key] = tasks if tasks else ["משימות לא הוגדרו"]
             else:
                 # ערך פשוט - הופך לרשימה
                 normalized[phase_key] = [str(phase_value)]
