@@ -111,13 +111,24 @@ async def process_user_answers(
         ctx, llm, pending_questions, user_message
     )
 
-    # עדכון ה-facts
+    # עדכון ה-facts - תמיכה גם ב-ParsedAnswer models וגם ב-dicts
     for answer in parsed_answers:
-        if answer.get("normalized_value") and answer.get("normalized_value") != "unknown":
-            key = answer.get("normalized_key", f"answer_{answer.get('id', 'unknown')}")
-            value = answer.get("normalized_value")
-            ctx.add_fact(key, value)
-            logger.info(f"Added fact: {key} = {value}")
+        # תמיכה גם ב-model וגם ב-dict
+        if hasattr(answer, 'normalized_value'):
+            # זה ParsedAnswer model
+            normalized_value = answer.normalized_value
+            normalized_key = answer.normalized_key
+            answer_id = answer.id
+        else:
+            # זה dict (מה-fallback)
+            normalized_value = answer.get("normalized_value")
+            normalized_key = answer.get("normalized_key", f"answer_{answer.get('id', 'unknown')}")
+            answer_id = answer.get("id", "unknown")
+
+        # בדיקה שהערך אינו None ואינו "unknown" (תומך ב-0, False, וכו')
+        if normalized_value is not None and normalized_value != "unknown":
+            ctx.add_fact(normalized_key, normalized_value)
+            logger.info(f"Added fact: {normalized_key} = {normalized_value}")
 
     # עדכון info_version כבר קורה ב-add_fact
     ctx.waiting_for_user = False

@@ -343,6 +343,10 @@ async def continue_conversation(
     # Add user message
     current_ctx.add_message("user", user_message)
 
+    # יצירת llm_client אם לא סופק
+    if llm_client is None:
+        llm_client = create_llm_client()
+
     # Determine which node to run based on current state
     if current_ctx.waiting_for_user:
         # Process based on current node

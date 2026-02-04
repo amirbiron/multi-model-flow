@@ -40,10 +40,11 @@ async def pattern_node(
     Pattern selection node - combines deterministic scoring with LLM judgment.
 
     The flow:
-    1. Score all patterns using the decision matrix (deterministic)
-    2. Get top 3 candidates
-    3. Use LLM to make final selection and provide justification
-    4. Generate tech stack recommendations
+    1. Check for forced_pattern (from swap_option verdict)
+    2. Score all patterns using the decision matrix (deterministic)
+    3. Get top 3 candidates
+    4. Use LLM to make final selection and provide justification
+    5. Generate tech stack recommendations
 
     Args:
         ctx: Current project context
@@ -54,6 +55,15 @@ async def pattern_node(
     """
     logger.info(f"[{ctx.session_id}] Running pattern node")
     ctx.current_node = "pattern"
+
+    # ========================================
+    # STEP 0: Check for forced pattern (from swap_option)
+    # ========================================
+    forced_pattern = ctx.forced_pattern
+    if forced_pattern:
+        logger.info(f"Using forced pattern from swap_option: {forced_pattern}")
+        # מנקה את forced_pattern אחרי שימוש כדי לא להשפיע על ריצות עתידיות
+        ctx.forced_pattern = None
 
     # ========================================
     # STEP 1: Deterministic Scoring
@@ -77,6 +87,22 @@ async def pattern_node(
         # Fallback if no viable patterns
         top_candidates = all_scored[:3]
 
+    # אם יש forced_pattern, מוודא שהוא בראש הרשימה
+    if forced_pattern:
+        # מחפש את ה-forced_pattern ברשימה
+        forced_in_list = next(
+            (sp for sp in all_scored if sp.name == forced_pattern),
+            None
+        )
+        if forced_in_list:
+            # מסיר אותו מהמיקום הנוכחי ומוסיף בהתחלה
+            top_candidates = [forced_in_list] + [
+                c for c in top_candidates if c.name != forced_pattern
+            ][:2]
+            logger.info(f"Forced pattern {forced_pattern} moved to top of candidates")
+        else:
+            logger.warning(f"Forced pattern {forced_pattern} not found in patterns list")
+
     logger.info(
         f"Top candidates: {[(c.name, c.score) for c in top_candidates]}"
     )
@@ -87,6 +113,15 @@ async def pattern_node(
     logger.info("Step 2: LLM selection...")
 
     llm_selection = await _get_llm_selection(ctx, llm, top_candidates)
+
+    # אם יש forced_pattern, מאלצים את הבחירה בו
+    if forced_pattern:
+        llm_selection.recommended_pattern = forced_pattern
+        llm_selection.recommendation = (
+            f"נבחר {forced_pattern} לפי הנחיית המערכת (swap_option). " +
+            llm_selection.recommendation
+        )
+        logger.info(f"Forced LLM selection to: {forced_pattern}")
 
     # ========================================
     # STEP 3: Update Context with Decisions

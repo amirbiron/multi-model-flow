@@ -49,8 +49,8 @@ async def critic_node(
     ctx.current_node = "critic"
     ctx.iteration_count += 1
 
-    # מסמן שהמידע הנוכחי נוצל
-    ctx.mark_info_used()
+    # בודק אם יש מידע חדש לפני שמסמן כנוצל
+    has_new_info = ctx.has_new_info()
 
     # Run LLM critique
     analysis = await _run_critique(ctx, llm)
@@ -67,18 +67,23 @@ async def critic_node(
     questions_to_ask = None
 
     # בלם לופים - אחרי 2 איטרציות לא חוזרים פנימה עוד פעם בלי מידע חדש
-    if ctx.iteration_count >= 2 and not ctx.has_new_info():
+    # הבדיקה של has_new_info נעשית לפני mark_info_used כדי לזהות נכון מידע חדש
+    if ctx.iteration_count >= 2 and not has_new_info:
         logger.info(f"Iteration {ctx.iteration_count} without new info, forcing end")
         analysis.verdict = "accept_with_notes"
+
+    # מסמן שהמידע נוצל רק אחרי הבדיקה
+    ctx.mark_info_used()
 
     # לוגיקת Verdict
     if analysis.verdict == "ask_user":
         # verdict=ask_user: שואלים את המשתמש במקום לחזור אחורה
+        # לא מוסיפים הודעה כאן - ask_user_node יוסיף הודעה בעצמו (מונע כפילויות)
         logger.info("Verdict: ask_user - need more info from user")
         ctx.waiting_for_user = True
         next_node = "ask_user"
         questions_to_ask = analysis.questions_to_ask
-        reply = _build_ask_user_reply(analysis)
+        reply = ""  # לא מוסיפים הודעה - ask_user_node יטפל בזה
 
     elif analysis.verdict == "swap_option":
         # verdict=swap_option: מחליפים pattern
@@ -113,7 +118,9 @@ async def critic_node(
         next_node = None
         reply = _build_approval_reply(analysis)
 
-    ctx.add_message("assistant", reply)
+    # מוסיף הודעה רק אם יש reply (לא מוסיפים הודעה ריקה)
+    if reply:
+        ctx.add_message("assistant", reply)
 
     logger.info(
         f"[{ctx.session_id}] Critic result: verdict={analysis.verdict}, "
