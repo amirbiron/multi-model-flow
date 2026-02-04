@@ -389,20 +389,22 @@
         /* כפתור העתקה לבלוקי קוד */
         .code-block {
             position: relative;
+            overflow: visible;
         }
 
         .copy-btn {
             position: absolute;
             top: 8px;
-            left: 8px;
-            z-index: 10;
-            background: rgba(60, 60, 80, 0.9);
+            right: 8px;
+            z-index: 100;
+            background: rgba(60, 60, 80, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 6px;
             padding: 8px 10px;
             cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.2s, background 0.2s;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s, background 0.2s;
             color: #ccc;
             font-size: 14px;
             line-height: 1;
@@ -410,16 +412,22 @@
 
         .code-block:hover .copy-btn {
             opacity: 1;
+            visibility: visible;
         }
 
         .copy-btn:hover {
-            background: rgba(80, 80, 100, 1);
+            background: rgba(100, 100, 120, 1);
             color: #fff;
         }
 
+        .copy-btn:active {
+            background: rgba(46, 204, 113, 0.7);
+            transform: scale(0.95);
+        }
+
         .copy-btn.copied {
-            background: rgba(46, 204, 113, 0.5);
-            color: #2ecc71;
+            background: rgba(46, 204, 113, 0.7);
+            color: #fff;
         }
 
         /* אייקון העתקה SVG */
@@ -2182,6 +2190,8 @@ CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]</code
                 // יוצר wrapper
                 const wrapper = document.createElement('div');
                 wrapper.className = 'code-block';
+                wrapper.style.position = 'relative';
+                wrapper.style.overflow = 'visible';
                 pre.parentNode.insertBefore(wrapper, pre);
                 wrapper.appendChild(pre);
 
@@ -2190,10 +2200,14 @@ CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]</code
                 btn.className = 'copy-btn';
                 btn.innerHTML = copyIcon;
                 btn.title = 'העתק קוד';
+                btn.type = 'button';
                 wrapper.appendChild(btn);
 
                 // אירוע לחיצה
-                btn.addEventListener('click', function() {
+                btn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     // מקבל את הטקסט מתוך ה-code או ישירות מה-pre
                     const code = pre.querySelector('code');
                     const text = code ? code.textContent : pre.textContent;
@@ -2210,8 +2224,22 @@ CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]</code
                         }, 2000);
                     }).catch(function(err) {
                         console.error('Failed to copy:', err);
+                        // fallback לדפדפנים ישנים
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+
+                        btn.innerHTML = checkIcon;
+                        btn.classList.add('copied');
+                        setTimeout(function() {
+                            btn.innerHTML = copyIcon;
+                            btn.classList.remove('copied');
+                        }, 2000);
                     });
-                });
+                };
             });
         });
     </script>
