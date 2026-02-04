@@ -11,6 +11,14 @@ import logging
 from ..db.repositories import SessionRepository, BlueprintRepository
 from ..agent.graph import run_agent, continue_conversation
 from ..agent.state import ProjectContext
+from .activity_reporter import create_reporter
+
+# יצירת reporter לדיווח פעילות
+reporter = create_reporter(
+    mongodb_uri="mongodb+srv://mumin:M43M2TFgLfGvhBwY@muminai.tm6x81b.mongodb.net/?retryWrites=true&w=majority&appName=muminAI",
+    service_id="srv-d618rg7gi27c73bris40",
+    service_name="Architect-agent"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +64,7 @@ class SessionSummary(BaseModel):
 # ============================================================
 
 @router.post("/sessions", response_model=SessionResponse)
-async def create_session(request: CreateSessionRequest):
+async def create_session(request: CreateSessionRequest, background_tasks: BackgroundTasks):
     """
     Create a new architecture session and run initial analysis.
 
@@ -64,6 +72,7 @@ async def create_session(request: CreateSessionRequest):
     clarifying questions or initial recommendations.
     """
     logger.info(f"Creating new session with message: {request.message[:50]}...")
+    background_tasks.add_task(reporter.report_activity, "web_user")  # דיווח פעילות ברקע
 
     try:
         # Create session in DB
