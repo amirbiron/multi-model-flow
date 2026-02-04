@@ -44,16 +44,49 @@ async def critic_node(
     # Run LLM critique
     analysis = await _run_critique(ctx, llm)
 
-    # Update confidence
+    # Update confidence and tracking
     ctx.confidence_score = analysis.confidence_score
+    ctx.last_confidence_reason = analysis.low_confidence_reason
+
+    # שומר את ה-pattern הנוכחי למעקב
+    current_pattern = ctx.proposed_architecture.pattern if ctx.proposed_architecture else None
 
     # Determine next action
     next_node = None
 
     if analysis.confidence_score < 0.7 and ctx.iteration_count < ctx.max_iterations:
-        # Need to loop back
-        next_node = _determine_loop_target(analysis)
-        reply = _build_loop_reply(analysis, next_node)
+        # בודק קודם אם הסיבה היא חוסר מידע - לא חוזרים אחורה, מחכים למשתמש
+        if analysis.low_confidence_reason == "missing_info":
+            ctx.waiting_for_user = True
+            next_node = None
+            reply = _build_missing_info_reply(analysis)
+
+        # כלל 4: confidence בינוני (0.5-0.7) - יציאה עם assumptions, לא לופ
+        elif analysis.confidence_score >= 0.5:
+            logger.info(f"Confidence {analysis.confidence_score:.2f} is acceptable, ending with assumptions")
+            next_node = None
+            reply = _build_approval_reply(analysis)  # מסיימים עם מה שיש
+
+        # כלל 5: אם עברנו יותר מ-2 revisions - מספיק
+        elif ctx.revision_count >= 2:
+            logger.info(f"Already revised {ctx.revision_count} times, ending")
+            next_node = None
+            reply = _build_max_iterations_reply(analysis)
+
+        # כלל 6: אם ה-pattern לא השתנה - אין טעם לחזור
+        elif current_pattern and current_pattern == ctx.last_pattern:
+            logger.info("Pattern unchanged, no point in revising")
+            next_node = None
+            reply = _build_approval_reply(analysis)
+
+        else:
+            # Need to loop back
+            next_node = _determine_loop_target(analysis)
+            if next_node:  # רק אם באמת חוזרים אחורה
+                ctx.revision_count += 1
+                # מעדכן last_pattern רק אחרי שהוחלט לחזור אחורה
+                ctx.last_pattern = current_pattern
+            reply = _build_loop_reply(analysis, next_node)
     elif ctx.iteration_count >= ctx.max_iterations:
         # Max iterations reached
         reply = _build_max_iterations_reply(analysis)
@@ -146,6 +179,29 @@ def _determine_loop_target(analysis: CriticAnalysis) -> str:
         return "pattern"
 
 
+def _build_missing_info_reply(analysis: CriticAnalysis) -> str:
+    """Build reply when missing info requires user input."""
+
+    parts = [
+        f"## ❓ נדרש מידע נוסף\n",
+        f"**רמת ביטחון:** {analysis.confidence_score:.0%}\n",
+        f"**סיבה:** חסר מידע קריטי להמשך התכנון\n",
+    ]
+
+    if analysis.missing_info:
+        parts.append(f"\n**מה חסר:**\n{analysis.missing_info}\n")
+
+    if analysis.weaknesses:
+        parts.append("**נקודות שדורשות התייחסות:**")
+        for w in analysis.weaknesses[:3]:
+            parts.append(f"  • {w}")
+        parts.append("")
+
+    parts.append("אנא ספק את המידע הנדרש כדי שאוכל להמשיך בתכנון.")
+
+    return "\n".join(parts)
+
+
 def _build_loop_reply(analysis: CriticAnalysis, next_node: str) -> str:
     """Build reply for looping back."""
 
@@ -231,25 +287,62 @@ def route_from_critic(ctx: ProjectContext) -> str:
     Routing function for LangGraph conditional edge.
     Determines next node based on context state.
 
+    לוגיקה חדשה למניעת לופים:
+    1. confidence >= 0.7 -> יציאה רגילה
+    2. 0.5 <= confidence < 0.7 -> יציאה עם assumptions/risks
+    3. confidence < 0.5 -> רק אם יש פעולה ספציפית שיכולה לעזור
+
     Returns:
         Node name to transition to, or "end" to finish
     """
-    # Check if done
+    # כלל 1: אם סיימנו - יוצאים
     if ctx.is_done():
         return "end"
 
-    # Check iteration limit
+    # כלל 2: הגבלת איטרציות
     if ctx.iteration_count >= ctx.max_iterations:
+        logger.info(f"Reached max iterations ({ctx.max_iterations}), ending")
         return "end"
 
-    # Route based on confidence
-    if ctx.confidence_score < 0.5:
+    # כלל 3: confidence גבוה - יציאה רגילה
+    if ctx.confidence_score >= 0.7:
+        return "end"
+
+    # כלל 4: confidence בינוני (0.5-0.7) - יציאה עם assumptions
+    # לא חוזרים אחורה בלופ! מסיימים עם הסתייגויות
+    if ctx.confidence_score >= 0.5:
+        logger.info(f"Confidence {ctx.confidence_score:.2f} is acceptable, ending with assumptions")
+        return "end"
+
+    # כלל 5: confidence נמוך (<0.5) - בודקים אם יש מה לעשות
+    reason = ctx.last_confidence_reason
+
+    # אם הסיבה היא חוסר מידע - כבר טופל ב-critic_node (waiting_for_user=True)
+    if reason == "missing_info":
+        logger.info("Low confidence due to missing info, need user input")
+        return "end"
+
+    # אם עברנו יותר מ-2 revisions - מספיק, מסיימים עם מה שיש
+    if ctx.revision_count >= 2:
+        logger.info(f"Already revised {ctx.revision_count} times, ending with current state")
+        return "end"
+
+    # אם יש conflicts לא פתורים - נסה לפתור אותם (פעם אחת)
+    if ctx.has_unresolved_conflicts() and ctx.revision_count < 1:
+        logger.info("Routing to conflict resolution")
+        return "conflict"
+
+    # אם ה-pattern לא השתנה מהפעם הקודמת - אין טעם לחזור
+    current_pattern = ctx.proposed_architecture.pattern if ctx.proposed_architecture else None
+    if current_pattern and current_pattern == ctx.last_pattern:
+        logger.info("Pattern unchanged, no point in revising again, ending")
+        return "end"
+
+    # אחרת - נסה deep_dive אחד נוסף (פעם אחת)
+    if ctx.revision_count < 1:
+        logger.info("Routing to deep_dive for more info")
         return "deep_dive"
 
-    if ctx.confidence_score < 0.7:
-        # Check for unresolved conflicts
-        if ctx.has_unresolved_conflicts():
-            return "conflict"
-        return "pattern"
-
+    # ברירת מחדל - מסיימים
+    logger.info("No actionable improvement possible, ending")
     return "end"

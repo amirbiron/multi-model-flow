@@ -192,9 +192,15 @@ class ProjectContext(BaseModel):
     iteration_count: int = 0
     max_iterations: int = 5
 
+    # ---- Revision Tracking (למניעת לופים) ----
+    revision_count: int = 0  # כמה פעמים חזרנו לאחור
+    last_pattern: Optional[str] = None  # ה-pattern האחרון שנבחר
+    last_confidence_reason: Optional[str] = None  # סיבת confidence נמוך אחרונה
+
     # ---- Internal flags ----
     waiting_for_user: bool = False
     error_message: Optional[str] = None
+    # הערה: _routing_hint מועבר דרך dict ולא דרך model (ראה graph.py שורה 89)
 
     def add_message(self, role: str, content: str) -> None:
         """Add a message to conversation history."""
@@ -299,3 +305,11 @@ class CriticAnalysis(BaseModel):
     missing_info: Optional[str] = None
     conflicts: List[str] = Field(default_factory=list)
     recommendation: Literal["approve", "revise_pattern", "need_info", "resolve_conflicts"]
+    # סיבת confidence נמוך - עוזר להחליט איך להמשיך
+    low_confidence_reason: Optional[Literal[
+        "missing_info",           # חסר מידע - צריך לשאול משתמש
+        "conflicting_constraints", # אילוצים סותרים
+        "weak_justification",      # הצדקה חלשה
+        "wrong_pattern",           # pattern לא מתאים
+        "risks_acknowledged"       # יש סיכונים אבל מודעים להם
+    ]] = None

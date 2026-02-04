@@ -21,7 +21,6 @@ from .nodes import (
     feasibility_node,
     blueprint_node,
     critic_node,
-    route_from_critic
 )
 from ..llm.client import LLMClient, create_llm_client
 
@@ -84,7 +83,7 @@ def create_architect_graph(llm_client: LLMClient = None):
 
     async def _critic(state: ProjectContext) -> Dict[str, Any]:
         ctx, reply, next_node = await critic_node(state, llm_client)
-        # Store routing hint in state
+        # שומר את הינט הניתוב ב-dict (לא ב-model כי underscore fields לא עוברים serialization)
         ctx_dict = ctx.model_dump()
         ctx_dict["_routing_hint"] = next_node
         return ctx_dict
@@ -123,25 +122,26 @@ def create_architect_graph(llm_client: LLMClient = None):
     # ========================================
 
     def _route_from_critic(state) -> str:
-        """Routing function for conditional edge from critic."""
+        """
+        Routing function for conditional edge from critic.
+        הלוגיקה העיקרית נמצאת ב-critic_node, כאן רק קוראים את ה-routing hint.
+        """
         # ממיר ל-dict כדי לגשת ל-_routing_hint שנוסף ב-critic node
         if isinstance(state, dict):
             state_dict = state
         else:
-            # state הוא ProjectContext - ממיר ל-dict
             state_dict = state.model_dump()
 
         routing_hint = state_dict.get("_routing_hint")
-        if routing_hint:
-            if routing_hint in ["deep_dive", "conflict", "pattern"]:
-                logger.info(f"Critic routing to: {routing_hint}")
-                return routing_hint
 
-        # Fallback to route_from_critic logic
-        ctx = ProjectContext.model_validate(state_dict)
-        result = route_from_critic(ctx)
-        logger.info(f"Critic routing (fallback) to: {result}")
-        return result
+        # אם יש routing hint תקין - משתמשים בו
+        if routing_hint and routing_hint in ["deep_dive", "conflict", "pattern"]:
+            logger.info(f"Critic routing to: {routing_hint}")
+            return routing_hint
+
+        # אחרת - מסיימים (critic_node כבר החליט לסיים)
+        logger.info("Critic routing to: end")
+        return "end"
 
     graph.add_conditional_edges(
         "critic",
@@ -194,8 +194,11 @@ async def run_agent(
     )
     initial_state.add_message("user", initial_message)
 
-    # Run configuration
-    config = {"configurable": {"thread_id": session_id}}
+    # Run configuration - מגדיל את ה-recursion limit כדי לאפשר יותר איטרציות
+    config = {
+        "configurable": {"thread_id": session_id},
+        "recursion_limit": 50  # ברירת מחדל היא 25, מגדילים ל-50
+    }
 
     # Execute the graph
     result = await graph.ainvoke(initial_state.model_dump(), config)
@@ -250,12 +253,20 @@ async def continue_conversation(
             process_conflict_response(current_ctx, user_message)
         elif current_ctx.current_node == "deep_dive":
             process_deep_dive_response(current_ctx, user_message)
+        elif current_ctx.current_node == "critic":
+            # המשתמש סיפק מידע נוסף שהמבקר ביקש
+            # ההודעה כבר נשמרה ב-conversation_history
+            # הגרף ירוץ מההתחלה, אבל עם ה-context המעודכן שכולל את ההודעה החדשה
+            pass
 
         current_ctx.waiting_for_user = False
 
     # Create and run graph from current state
     graph = create_architect_graph(llm_client)
-    config = {"configurable": {"thread_id": session_id}}
+    config = {
+        "configurable": {"thread_id": session_id},
+        "recursion_limit": 50
+    }
 
     result = await graph.ainvoke(current_ctx.model_dump(), config)
     final_ctx = ProjectContext.model_validate(result)
