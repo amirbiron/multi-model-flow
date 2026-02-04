@@ -16,7 +16,7 @@ langchain-core==0.1.46
 anthropic==0.18.1
 
 # Gemini (אופציונלי - להחלפת Claude)
-google-generativeai==0.8.3
+google-genai>=1.0.0
 
 # Database
 motor==3.3.2

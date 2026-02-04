@@ -362,11 +362,14 @@ Use Hebrew for text content where appropriate."""
         max_tokens: Optional[int] = None
     ) -> str:
         """יצירת תשובה עם היסטוריה מ-Gemini."""
-        # המרת היסטוריה לפורמט של Gemini
+        # המרת היסטוריה לפורמט של Gemini (רק roles תקינים)
         gemini_contents = []
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
+            # מסנן רק roles תקינים (כמו ClaudeLLMClient)
+            if role not in ["user", "assistant"]:
+                continue
             # Gemini משתמש ב-"user" ו-"model"
             gemini_role = "model" if role == "assistant" else "user"
             gemini_contents.append(
