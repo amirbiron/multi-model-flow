@@ -259,8 +259,11 @@ async def run_agent(
     # Execute the graph
     result = await graph.ainvoke(initial_state.model_dump(), config)
 
-    # Convert result back to ProjectContext
-    final_ctx = ProjectContext.model_validate(result)
+    # המרת התוצאה ל-ProjectContext - בדיקה אם כבר אובייקט או dict
+    if isinstance(result, ProjectContext):
+        final_ctx = result
+    else:
+        final_ctx = ProjectContext.model_validate(result)
 
     logger.info(
         f"Agent run complete for session: {session_id}, "
@@ -325,6 +328,11 @@ async def continue_conversation(
     }
 
     result = await graph.ainvoke(current_ctx.model_dump(), config)
-    final_ctx = ProjectContext.model_validate(result)
+
+    # המרת התוצאה ל-ProjectContext - בדיקה אם כבר אובייקט או dict
+    if isinstance(result, ProjectContext):
+        final_ctx = result
+    else:
+        final_ctx = ProjectContext.model_validate(result)
 
     return final_ctx
