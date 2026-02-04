@@ -195,14 +195,24 @@
                 textarea.value = text;
                 document.body.appendChild(textarea);
                 textarea.select();
-                document.execCommand('copy');
+                const success = document.execCommand('copy');
                 document.body.removeChild(textarea);
-                button.textContent = 'הועתק!';
-                button.classList.add('copied');
-                setTimeout(() => {
-                    button.textContent = 'העתק';
-                    button.classList.remove('copied');
-                }, 2000);
+
+                if (success) {
+                    button.textContent = 'הועתק!';
+                    button.classList.add('copied');
+                    setTimeout(() => {
+                        button.textContent = 'העתק';
+                        button.classList.remove('copied');
+                    }, 2000);
+                } else {
+                    button.textContent = 'נכשל';
+                    button.style.borderColor = '#c73e54';
+                    setTimeout(() => {
+                        button.textContent = 'העתק';
+                        button.style.borderColor = '';
+                    }, 2000);
+                }
             }
         }
 
