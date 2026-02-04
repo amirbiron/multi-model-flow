@@ -297,19 +297,48 @@ class PatternSelection(BaseModel):
     recommendation: str
 
 
+class CriticIssue(BaseModel):
+    """Issue that must be fixed before proceeding."""
+    issue: str
+    why: str
+    suggested_change: str
+
+
+class CriticQuestion(BaseModel):
+    """High-impact question to ask the user."""
+    question: str
+    impact: Literal["high", "medium", "low"]
+    why_it_matters: str
+
+
+class CriticSwapOption(BaseModel):
+    """Alternative pattern recommendation."""
+    pattern: Optional[str] = None
+    why: Optional[str] = None
+
+
+class CriticFailureMode(BaseModel):
+    """Top failure modes identified by the critic."""
+    failure: str
+    severity: Literal["low", "medium", "high"]
+    mitigation: str
+
+
 class CriticAnalysis(BaseModel):
-    """LLM response for critic node."""
-    confidence_score: float = Field(ge=0, le=1)
-    strengths: List[str]
-    weaknesses: List[str]
-    missing_info: Optional[str] = None
-    conflicts: List[str] = Field(default_factory=list)
-    recommendation: Literal["approve", "revise_pattern", "need_info", "resolve_conflicts"]
-    # סיבת confidence נמוך - עוזר להחליט איך להמשיך
+    """LLM response for critic node with deterministic verdict."""
+    agent_role: Optional[str] = None
+    verdict: Literal["accept", "accept_with_notes", "ask_user", "swap_option"]
     low_confidence_reason: Optional[Literal[
-        "missing_info",           # חסר מידע - צריך לשאול משתמש
-        "conflicting_constraints", # אילוצים סותרים
-        "weak_justification",      # הצדקה חלשה
-        "wrong_pattern",           # pattern לא מתאים
-        "risks_acknowledged"       # יש סיכונים אבל מודעים להם
+        "missing_info",
+        "conflicting_constraints",
+        "wrong_choice",
+        "weak_justification",
+        "other"
     ]] = None
+    confidence: float = Field(ge=0, le=1)
+    must_fix: List[CriticIssue] = Field(default_factory=list)
+    questions_to_ask: List[CriticQuestion] = Field(default_factory=list)
+    swap_to: Optional[CriticSwapOption] = None
+    top_failure_modes: List[CriticFailureMode] = Field(default_factory=list)
+    strengths: List[str] = Field(default_factory=list)
+    weaknesses: List[str] = Field(default_factory=list)

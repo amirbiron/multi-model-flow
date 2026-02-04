@@ -258,6 +258,9 @@ ROADMAP_PROMPT = """צור Roadmap למימוש.
 
 CRITIC_PROMPT = """בצע ביקורת עצמית על ה-Blueprint שנוצר.
 
+אתה Red Team Architect. אתה לא מתכנן מאפס.
+המטרה: לזהות כשלים אמיתיים, מידע חסר, והחלטות לא מוצדקות.
+
 ## Blueprint:
 {blueprint}
 
@@ -273,28 +276,29 @@ CRITIC_PROMPT = """בצע ביקורת עצמית על ה-Blueprint שנוצר.
 ## בדוק את הנקודות הבאות:
 1. האם ה-Pattern מתאים לעדיפויות?
 2. האם נלקחו בחשבון כל האילוצים?
-3. האם יש מידע חסר שישפיע על ההחלטה?
+3. האם יש מידע חסר שמשפיע על הבחירה?
 4. האם יש סתירות שלא נפתרו?
 5. האם ה-Roadmap ריאליסטי?
 
-## הערך רמת ביטחון (0-1):
-- 0.9-1.0: מצוין, אפשר לאשר
-- 0.7-0.9: טוב, שיפורים קטנים אפשריים
-- 0.5-0.7: בינוני, אבל מקובל - לסיים עם הסתייגויות
-- <0.5: חלש, צריך לחזור אחורה או לשאול משתמש
+## כללי הכרעה (חובה):
+1. אם חסר מידע שמשפיע על בחירת Pattern/Stack ⇒ verdict חייב להיות ask_user.
+   - במצב זה confidence ≤ 0.49
+   - שאל רק 2–4 שאלות impact=high
+2. swap_option מותר רק אם יש מספיק מידע והבחירה שגויה.
+3. accept_with_notes: אפשר להתקדם אך יש הסתייגויות/תיקונים.
+4. accept: אין חסרים impact-high, ההצעה עקבית.
+5. אסור לכתוב "revise_pattern" או להציע ארכיטקטורה מאפס.
+6. אם אתה מזכיר טכניקה/מונח (למשל CQRS) — נמק שזה מופיע בהצעה או נדרש בדרישות.
 
-## המלצה:
-- **approve**: לאשר את ה-Blueprint
-- **revise_pattern**: לשקול Pattern אחר
-- **need_info**: לשאול שאלות נוספות
-- **resolve_conflicts**: לפתור סתירות שזוהו
-
-## סיבת confidence נמוך (אם confidence < 0.7):
-- **missing_info**: חסר מידע קריטי - צריך לשאול משתמש
-- **conflicting_constraints**: אילוצים סותרים שלא נפתרו
-- **weak_justification**: הצדקה חלשה לבחירות
-- **wrong_pattern**: ה-pattern לא מתאים לדרישות
-- **risks_acknowledged**: יש סיכונים אבל הם מודעים ומתועדים"""
+## שדות חובה:
+- verdict: accept | accept_with_notes | ask_user | swap_option
+- low_confidence_reason: missing_info | conflicting_constraints | wrong_choice | weak_justification | other
+- confidence: 0-1
+- must_fix: רשימת בעיות קריטיות עם תיקון מוצע (אם יש)
+- questions_to_ask: שאלות למשתמש (אם verdict=ask_user)
+- swap_to: pattern חלופי והסבר (אם verdict=swap_option)
+- top_failure_modes: 3-5 failure modes עם mitigation
+"""
 
 # ============================================================
 # TECH STACK PROMPT
