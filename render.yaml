@@ -1,0 +1,52 @@
+# Multi-Model Opinion Flow - Render Deployment
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: multi-model-flow
+    runtime: python
+    region: frankfurt  # אירופה - קרוב לישראל
+    plan: free  # או starter לביצועים טובים יותר
+
+    # Build
+    buildCommand: pip install -r requirements.txt
+
+    # Start
+    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+
+    # Health Check
+    healthCheckPath: /api/health
+
+    # Environment Variables - הגדר ב-Render Dashboard
+    envVars:
+      # Claude (Anthropic)
+      - key: ANTHROPIC_API_KEY
+        sync: false  # יוגדר ידנית ב-Dashboard
+
+      # Gemini (Google)
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # GPT (OpenAI)
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # Mistral
+      - key: MISTRAL_API_KEY
+        sync: false
+
+      # Grok (xAI)
+      - key: GROK_API_KEY
+        sync: false
+
+      # DeepSeek
+      - key: DEEPSEEK_API_KEY
+        sync: false
+
+      # Perplexity
+      - key: PERPLEXITY_API_KEY
+        sync: false
+
+      # Python settings
+      - key: PYTHONUNBUFFERED
+        value: "1"

@@ -83,3 +83,37 @@ class Config:
 
 # הגדרות גלובליות
 config = Config.from_env()
+
+
+# רשימת כל המודלים - מקור יחיד לאמת
+# (id, display_name)
+MODELS_REGISTRY = [
+    ("claude", "Claude (Anthropic)"),
+    ("gemini", "Gemini (Google)"),
+    ("gpt", "GPT (OpenAI)"),
+    ("mistral", "Mistral AI"),
+    ("grok", "Grok (xAI)"),
+    ("deepseek", "DeepSeek Reasoner"),
+    ("perplexity", "Perplexity (Sonar)"),
+]
+
+
+def get_models_with_status() -> list[tuple[str, str, bool]]:
+    """
+    מחזיר רשימת כל המודלים עם סטטוס זמינות.
+    Returns: list of (id, name, available)
+    """
+    api_keys = {
+        "claude": config.claude_api_key,
+        "gemini": config.gemini_api_key,
+        "gpt": config.openai_api_key,
+        "mistral": config.mistral_api_key,
+        "grok": config.grok_api_key,
+        "deepseek": config.deepseek_api_key,
+        "perplexity": config.perplexity_api_key,
+    }
+
+    return [
+        (model_id, name, bool(api_keys.get(model_id)))
+        for model_id, name in MODELS_REGISTRY
+    ]

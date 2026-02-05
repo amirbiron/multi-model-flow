@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 from src.flow import run_flow, MultiModelFlow
-from src.config import config
+from src.config import config, get_models_with_status
 
 
 def print_banner():
@@ -27,18 +27,8 @@ def list_models():
     """הצגת רשימת המודלים הזמינים"""
     print("\n📋 מודלים זמינים:\n")
 
-    all_models = [
-        ("claude", "Claude (Anthropic)", config.claude_api_key),
-        ("gemini", "Gemini (Google)", config.gemini_api_key),
-        ("gpt", "GPT (OpenAI)", config.openai_api_key),
-        ("mistral", "Mistral AI", config.mistral_api_key),
-        ("grok", "Grok (xAI)", config.grok_api_key),
-        ("deepseek", "DeepSeek Reasoner", config.deepseek_api_key),
-        ("perplexity", "Perplexity (Sonar)", config.perplexity_api_key),
-    ]
-
-    for model_id, name, api_key in all_models:
-        status = "✅" if api_key else "❌"
+    for model_id, name, available in get_models_with_status():
+        status = "✅" if available else "❌"
         print(f"  {status} {model_id:12} - {name}")
 
     print("\n💡 הגדר API keys בקובץ .env או כמשתני סביבה")

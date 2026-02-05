@@ -12,7 +12,7 @@ import asyncio
 import json
 
 from ..flow import MultiModelFlow
-from ..config import config
+from ..config import config, get_models_with_status
 
 app = FastAPI(
     title="Multi-Model Opinion Flow",
@@ -59,19 +59,9 @@ async def root():
 @app.get("/api/models")
 async def get_models() -> list[ModelInfo]:
     """מחזיר רשימת כל המודלים וזמינותם"""
-    all_models = [
-        ("claude", "Claude (Anthropic)", config.claude_api_key),
-        ("gemini", "Gemini (Google)", config.gemini_api_key),
-        ("gpt", "GPT (OpenAI)", config.openai_api_key),
-        ("mistral", "Mistral AI", config.mistral_api_key),
-        ("grok", "Grok (xAI)", config.grok_api_key),
-        ("deepseek", "DeepSeek Reasoner", config.deepseek_api_key),
-        ("perplexity", "Perplexity (Sonar)", config.perplexity_api_key),
-    ]
-
     return [
-        ModelInfo(id=model_id, name=name, available=bool(api_key))
-        for model_id, name, api_key in all_models
+        ModelInfo(id=model_id, name=name, available=available)
+        for model_id, name, available in get_models_with_status()
     ]
 
 
