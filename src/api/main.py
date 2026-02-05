@@ -85,23 +85,21 @@ async def ask_question(request: QuestionRequest):
         previous_responses: list[tuple[str, str]] = []
 
         # שליחת רשימת המודלים שישתתפו
-        print(f"[API] מתחיל זרימה עם {len(available)} מודלים: {available}")
         yield f"data: {json.dumps({'type': 'start', 'models': available}, ensure_ascii=False)}\n\n"
 
         for model_name in available:
-            try:
-                model = flow.models[model_name]
-                print(f"[API] מעבד מודל: {model.name}")
+            model = flow.models[model_name]
+            display_name = model.name  # שמירה לשימוש ב-except
 
+            try:
                 # הודעה שהתחלנו לעבד מודל
-                yield f"data: {json.dumps({'type': 'processing', 'model': model.name}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'processing', 'model': display_name}, ensure_ascii=False)}\n\n"
 
                 # בניית הפרומפט
                 prompt = model._build_chain_prompt(request.question, previous_responses)
 
                 # שליחה למודל
                 response = await model.generate(prompt)
-                print(f"[API] תשובה מ-{model.name}: success={response.success}, error={response.error}")
 
                 if response.success:
                     previous_responses.append((model.name, response.content))
@@ -110,14 +108,13 @@ async def ask_question(request: QuestionRequest):
                 yield f"data: {json.dumps({'type': 'response', 'model': response.model_name, 'content': response.content, 'success': response.success, 'error': response.error}, ensure_ascii=False)}\n\n"
 
             except Exception as e:
-                print(f"[API] שגיאה במודל {model_name}: {e}")
-                yield f"data: {json.dumps({'type': 'response', 'model': model_name, 'content': '', 'success': False, 'error': str(e)}, ensure_ascii=False)}\n\n"
+                # שימוש ב-display_name כדי שה-frontend ימצא את ה-loading indicator
+                yield f"data: {json.dumps({'type': 'response', 'model': display_name, 'content': '', 'success': False, 'error': str(e)}, ensure_ascii=False)}\n\n"
 
             # השהיה קטנה בין מודלים
             await asyncio.sleep(0.1)
 
         # סיום
-        print(f"[API] זרימה הסתיימה")
         yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(

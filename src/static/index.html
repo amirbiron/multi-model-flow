@@ -441,13 +441,10 @@
             this.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', this.dataset.id);
-            // עיכוב קטן כדי שה-CSS יעבוד
-            setTimeout(() => this.style.opacity = '0.4', 0);
         }
 
         function handleDragEnd(e) {
             this.classList.remove('dragging');
-            this.style.opacity = '1';
             // הסרת כל סימוני הגרירה
             document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
                 el.classList.remove('drag-over-top', 'drag-over-bottom');
