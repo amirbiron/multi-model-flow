@@ -1,5 +1,9 @@
 # Multi-Model Opinion Flow - Dependencies
 
+# Web Framework
+fastapi>=0.109.0           # API Server
+uvicorn[standard]>=0.27.0  # ASGI Server
+
 # LLM SDKs
 anthropic>=0.40.0          # Claude
 google-generativeai>=0.8.0  # Gemini
