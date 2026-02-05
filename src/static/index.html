@@ -406,15 +406,19 @@
 
         // ========== Drag & Drop ==========
         let draggedItem = null;
+        let containerListenersAdded = false;  // דגל למניעת כפילויות
 
         function initDragAndDrop() {
             const container = document.getElementById('modelList');
 
-            // אירועים על ה-container
-            container.addEventListener('dragover', handleDragOver);
-            container.addEventListener('drop', handleDrop);
+            // אירועים על ה-container - רק פעם אחת!
+            if (!containerListenersAdded) {
+                container.addEventListener('dragover', handleDragOver);
+                container.addEventListener('drop', handleDrop);
+                containerListenersAdded = true;
+            }
 
-            // אירועים על כל פריט
+            // אירועים על כל פריט (האלמנטים נוצרים מחדש בכל renderModelList)
             const items = container.querySelectorAll('.model-item:not(.disabled)');
             items.forEach(item => {
                 item.addEventListener('dragstart', handleDragStart);
