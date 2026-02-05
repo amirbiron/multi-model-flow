@@ -1,85 +1,119 @@
 """
-Architect Agent - Configuration
-================================
-Application settings loaded from environment variables.
+הגדרות הפרויקט וניהול API Keys
 """
-from pydantic_settings import BaseSettings
-from typing import List
-import json
-from functools import lru_cache
+
+import os
+from dataclasses import dataclass
+from typing import Optional
 
 
-class Settings(BaseSettings):
-    """Application settings with environment variable support."""
-
-    # ============ App Settings ============
-    APP_NAME: str = "Architect Agent"
-    APP_VERSION: str = "1.0.0"
-    DEBUG: bool = False
-
-    # ============ MongoDB ============
-    MONGODB_URI: str
-    MONGODB_DB_NAME: str = "architect_agent"
-    MONGODB_MAX_POOL_SIZE: int = 10
-    MONGODB_MIN_POOL_SIZE: int = 1
-
-    # ============ LLM Provider Selection ============
-    # בחירת ספק LLM: "claude" או "gemini"
-    LLM_PROVIDER: str = "claude"
-
-    # ============ Claude API ============
-    ANTHROPIC_API_KEY: str = ""
-    CLAUDE_MODEL: str = "claude-sonnet-4-20250514"
-    CLAUDE_MAX_TOKENS: int = 4096
-    CLAUDE_TEMPERATURE: float = 0.7
-
-    # ============ Gemini API ============
-    GOOGLE_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3-pro-preview"
-    GEMINI_MAX_TOKENS: int = 4096
-    GEMINI_TEMPERATURE: float = 0.7
-
-    # ============ Redis (Optional) ============
-    REDIS_URL: str = ""
-
-    # ============ CORS ============
-    # תיקון: שמירה כ-string כדי למנוע בעיית פרסור JSON ב-pydantic-settings
-    CORS_ORIGINS_RAW: str = "*"
-
-    @property
-    def CORS_ORIGINS(self) -> List[str]:
-        """פרסור CORS_ORIGINS מ-string ל-list."""
-        v = self.CORS_ORIGINS_RAW
-        if not v or v.strip() == "":
-            return ["*"]
-        # אם מתחיל ב-[ זה כנראה JSON
-        if v.strip().startswith("["):
-            try:
-                return json.loads(v)
-            except json.JSONDecodeError:
-                pass
-        # אחרת - מפריד לפי פסיקים
-        return [x.strip() for x in v.split(',')]
-
-    # ============ Agent Settings ============
-    MAX_ITERATIONS: int = 5
-    MIN_CONFIDENCE: float = 0.7
-    HISTORY_LIMIT: int = 10  # Max messages to include in LLM context
-
-    # ============ Logging ============
-    LOG_LEVEL: str = "INFO"
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"
+@dataclass
+class ModelConfig:
+    """הגדרות למודל בודד"""
+    name: str
+    api_key: Optional[str]
+    model_id: str
+    enabled: bool = True
 
 
-@lru_cache()
-def get_settings() -> Settings:
-    """Get cached settings instance."""
-    return Settings()
+@dataclass
+class Config:
+    """הגדרות הפרויקט"""
+
+    # Claude
+    claude_api_key: Optional[str] = None
+    claude_model: str = "claude-sonnet-4-20250514"
+
+    # Gemini
+    gemini_api_key: Optional[str] = None
+    gemini_model: str = "gemini-2.5-pro-preview-05-06"
+
+    # OpenAI (GPT)
+    openai_api_key: Optional[str] = None
+    gpt_model: str = "gpt-4o"
+
+    # Mistral
+    mistral_api_key: Optional[str] = None
+    mistral_model: str = "mistral-large-latest"
+
+    # Grok (xAI)
+    grok_api_key: Optional[str] = None
+    grok_model: str = "grok-2-latest"
+
+    # DeepSeek
+    deepseek_api_key: Optional[str] = None
+    deepseek_model: str = "deepseek-reasoner"
+
+    # Perplexity
+    perplexity_api_key: Optional[str] = None
+    perplexity_model: str = "sonar-pro"
+
+    @classmethod
+    def from_env(cls) -> "Config":
+        """טעינת הגדרות ממשתני סביבה"""
+        return cls(
+            claude_api_key=os.getenv("ANTHROPIC_API_KEY"),
+            gemini_api_key=os.getenv("GEMINI_API_KEY"),
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            mistral_api_key=os.getenv("MISTRAL_API_KEY"),
+            grok_api_key=os.getenv("GROK_API_KEY"),
+            deepseek_api_key=os.getenv("DEEPSEEK_API_KEY"),
+            perplexity_api_key=os.getenv("PERPLEXITY_API_KEY"),
+        )
+
+    def get_available_models(self) -> list[str]:
+        """מחזיר רשימת מודלים זמינים (עם API key)"""
+        available = []
+        if self.claude_api_key:
+            available.append("claude")
+        if self.gemini_api_key:
+            available.append("gemini")
+        if self.openai_api_key:
+            available.append("gpt")
+        if self.mistral_api_key:
+            available.append("mistral")
+        if self.grok_api_key:
+            available.append("grok")
+        if self.deepseek_api_key:
+            available.append("deepseek")
+        if self.perplexity_api_key:
+            available.append("perplexity")
+        return available
 
 
-# Global settings instance
-settings = get_settings()
+# הגדרות גלובליות
+config = Config.from_env()
+
+
+# רשימת כל המודלים - מקור יחיד לאמת
+# (id, display_name)
+MODELS_REGISTRY = [
+    ("claude", "Claude (Anthropic)"),
+    ("gemini", "Gemini (Google)"),
+    ("gpt", "GPT (OpenAI)"),
+    ("mistral", "Mistral AI"),
+    ("grok", "Grok (xAI)"),
+    ("deepseek", "DeepSeek Reasoner"),
+    ("perplexity", "Perplexity (Sonar)"),
+]
+
+
+def get_models_with_status() -> list[tuple[str, str, bool]]:
+    """
+    מחזיר רשימת כל המודלים עם סטטוס זמינות.
+    Returns: list of (id, name, available)
+    """
+    api_keys = {
+        "claude": config.claude_api_key,
+        "gemini": config.gemini_api_key,
+        "gpt": config.openai_api_key,
+        "mistral": config.mistral_api_key,
+        "grok": config.grok_api_key,
+        "deepseek": config.deepseek_api_key,
+        "perplexity": config.perplexity_api_key,
+    }
+
+    return [
+        (model_id, name, bool(api_keys.get(model_id)))
+        for model_id, name in MODELS_REGISTRY
+    ]

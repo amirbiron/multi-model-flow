@@ -3,141 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Architect Agent</title>
+    <title>Multi-Model Opinion Flow</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e; color: #eee; min-height: 100vh;
-            display: flex; flex-direction: column;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
+
+        /* Header */
         header {
-            background: #16213e; padding: 1rem 2rem;
-            border-bottom: 1px solid #0f3460;
+            background: rgba(22, 33, 62, 0.9);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #e94560;
+            backdrop-filter: blur(10px);
         }
-        header h1 { font-size: 1.5rem; color: #e94560; }
-        header small { color: #888; }
+        header h1 {
+            font-size: 1.5rem;
+            color: #e94560;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        header h1::before { content: '🔄'; }
+        header small { color: #888; display: block; margin-top: 0.25rem; }
 
-        main { flex: 1; display: flex; max-width: 1200px; margin: 0 auto; width: 100%; }
+        /* Main Layout */
+        main {
+            flex: 1;
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 1rem;
+            gap: 1rem;
+        }
 
-        /* אזור הצ'אט */
-        .chat-container {
-            flex: 1; display: flex; flex-direction: column;
-            padding: 1rem; border-left: 1px solid #0f3460;
-        }
-        .messages {
-            flex: 1; overflow-y: auto; padding: 1rem;
-            display: flex; flex-direction: column; gap: 1rem;
-        }
-        .message {
-            max-width: 80%; padding: 0.75rem 1rem;
-            border-radius: 12px; line-height: 1.5;
-        }
-        .message.user {
-            background: #0f3460; align-self: flex-start;
-        }
-        .message.assistant {
-            background: #1f4068; align-self: flex-end;
-            border: 1px solid #e94560;
-            position: relative;
-        }
-        .message pre {
-            background: #0a0a15; padding: 0.5rem;
-            border-radius: 6px; overflow-x: auto;
-            margin-top: 0.5rem; font-size: 0.85rem;
-        }
-        /* כפתור העתק */
-        .copy-btn {
-            position: absolute; top: 0.5rem; left: 0.5rem;
-            background: #0f3460; border: 1px solid #e94560;
-            color: #e94560; padding: 0.3rem 0.6rem;
-            border-radius: 4px; font-size: 0.75rem;
-            cursor: pointer; opacity: 0.7;
-            transition: opacity 0.2s, background 0.2s;
-        }
-        .copy-btn:hover { opacity: 1; background: #1a4a80; }
-        .copy-btn.copied { background: #2d6a4f; border-color: #2d6a4f; color: white; }
-
-        /* טופס שליחה */
-        .input-area {
-            display: flex; gap: 0.5rem; padding: 1rem;
-            background: #16213e; border-radius: 12px;
-        }
-        .input-area textarea {
-            flex: 1; padding: 0.75rem; border: none;
-            border-radius: 8px; background: #0f3460;
-            color: #eee; font-size: 1rem; resize: none;
-            min-height: 60px;
-        }
-        .input-area textarea:focus { outline: 2px solid #e94560; }
-        .input-area button {
-            padding: 0.75rem 1.5rem; border: none;
-            border-radius: 8px; background: #e94560;
-            color: white; font-size: 1rem; cursor: pointer;
-            transition: background 0.2s;
-        }
-        .input-area button:hover { background: #c73e54; }
-        .input-area button:disabled { background: #555; cursor: not-allowed; }
-
-        /* פאנל צד - Blueprint */
+        /* Sidebar - Model Selection */
         .sidebar {
-            width: 350px; padding: 1rem;
-            background: #16213e; overflow-y: auto;
+            width: 280px;
+            background: rgba(22, 33, 62, 0.8);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
-        .sidebar h2 { color: #e94560; margin-bottom: 1rem; font-size: 1.2rem; }
-        .sidebar .info {
-            background: #0f3460; padding: 1rem;
-            border-radius: 8px; margin-bottom: 1rem;
+        .sidebar h2 {
+            color: #e94560;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 0.5rem;
         }
-        .sidebar .info p { margin: 0.5rem 0; font-size: 0.9rem; }
-        .sidebar .info strong { color: #e94560; }
 
-        .blueprint-section {
-            background: #0f3460; padding: 1rem;
-            border-radius: 8px; margin-bottom: 1rem;
+        /* Model List */
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
-        .blueprint-section h3 {
-            color: #e94560; font-size: 1rem;
-            margin-bottom: 0.5rem;
+        .model-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: #0f3460;
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+            border: 2px solid transparent;
         }
-        .blueprint-section ul {
-            padding-right: 1.5rem; font-size: 0.9rem;
+        .model-item:hover { background: #1a4a80; }
+        .model-item.dragging { opacity: 0.5; transform: scale(1.02); }
+        .model-item.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #1a1a2e;
         }
-        .blueprint-section li { margin: 0.3rem 0; }
+        .model-item.active { border-color: #e94560; }
 
-        /* מצב התחלתי */
+        .model-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #e94560;
+        }
+        .model-name { flex: 1; font-size: 0.9rem; }
+        .model-status {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+        .model-status.available { background: #2d6a4f; color: #b7e4c7; }
+        .model-status.unavailable { background: #6c1f1f; color: #f4a4a4; }
+
+        .drag-handle {
+            cursor: grab;
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .help-text {
+            font-size: 0.8rem;
+            color: #888;
+            background: #0a0a15;
+            padding: 0.75rem;
+            border-radius: 6px;
+            line-height: 1.5;
+        }
+
+        /* Chat Area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(22, 33, 62, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Messages */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
         .welcome {
-            text-align: center; padding: 3rem;
+            text-align: center;
+            padding: 3rem;
             color: #888;
         }
         .welcome h2 { color: #e94560; margin-bottom: 1rem; }
+        .welcome p { margin: 0.5rem 0; }
 
-        /* Loading */
-        .loading { opacity: 0.7; }
-        .loading::after {
-            content: '...'; animation: dots 1s infinite;
+        /* Message Bubbles */
+        .message {
+            padding: 1rem;
+            border-radius: 12px;
+            line-height: 1.6;
+            position: relative;
+        }
+        .message.user {
+            background: #0f3460;
+            align-self: flex-start;
+            max-width: 70%;
+        }
+        .message.model {
+            background: #1f4068;
+            border: 1px solid #0f3460;
+            margin-right: 2rem;
+        }
+        .message.model.processing {
+            opacity: 0.7;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #0f3460;
+        }
+        .model-badge {
+            background: #e94560;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .message-order {
+            background: #0f3460;
+            color: #888;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .message-content {
+            font-size: 0.95rem;
+        }
+        .message-content h1, .message-content h2, .message-content h3 {
+            color: #e94560;
+            margin: 1rem 0 0.5rem 0;
+        }
+        .message-content h1:first-child, .message-content h2:first-child {
+            margin-top: 0;
+        }
+        .message-content ul, .message-content ol {
+            margin: 0.5rem 0;
+            padding-right: 1.5rem;
+        }
+        .message-content li { margin: 0.3rem 0; }
+        .message-content code {
+            background: #0a0a15;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .message-content pre {
+            background: #0a0a15;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+        }
+        .message-content pre code {
+            background: none;
+            padding: 0;
+        }
+        .message-content blockquote {
+            border-right: 3px solid #e94560;
+            padding-right: 1rem;
+            margin: 0.75rem 0;
+            color: #aaa;
+        }
+
+        /* Copy Button */
+        .copy-btn {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            background: #0f3460;
+            border: 1px solid #e94560;
+            color: #e94560;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+        .message:hover .copy-btn { opacity: 0.7; }
+        .copy-btn:hover { opacity: 1 !important; background: #1a4a80; }
+        .copy-btn.copied { background: #2d6a4f; border-color: #2d6a4f; color: white; }
+
+        /* Loading Animation */
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
         }
         @keyframes dots {
             0%, 20% { content: '.'; }
             40% { content: '..'; }
             60%, 100% { content: '...'; }
         }
+
+        /* Input Area */
+        .input-area {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(22, 33, 62, 0.9);
+            border-top: 1px solid #0f3460;
+        }
+        .input-area textarea {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            background: #0f3460;
+            color: #eee;
+            font-size: 1rem;
+            resize: none;
+            min-height: 80px;
+            transition: border-color 0.2s;
+        }
+        .input-area textarea:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+        .input-area button {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            background: #e94560;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            align-self: flex-end;
+        }
+        .input-area button:hover { background: #c73e54; transform: translateY(-2px); }
+        .input-area button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Progress */
+        .progress-bar {
+            height: 4px;
+            background: #0f3460;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            transition: width 0.3s;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            main { flex-direction: column; }
+            .sidebar { width: 100%; }
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Architect Agent</h1>
-        <small>סוכן AI לתכנון ארכיטקטורת תוכנה</small>
+        <h1>Multi-Model Opinion Flow</h1>
+        <small>קבל דעות מרובות ממודלים מובילים - כל מודל בונה על התשובות הקודמות</small>
     </header>
 
     <main>
-        <div class="chat-container">
+        <aside class="sidebar">
+            <h2>📋 בחר מודלים וסדר</h2>
+            <div class="model-list" id="modelList">
+                <!-- מודלים יטענו דינמית -->
+            </div>
+            <div class="help-text">
+                <strong>💡 טיפ:</strong><br>
+                גרור את המודלים כדי לשנות את הסדר.<br>
+                המודל הראשון עונה על השאלה, והשאר בונים על התשובות הקודמות.
+            </div>
+        </aside>
+
+        <section class="chat-container">
             <div class="messages" id="messages">
                 <div class="welcome">
-                    <h2>ברוכים הבאים!</h2>
-                    <p>תאר את הפרויקט שלך ואעזור לך לתכנן את הארכיטקטורה.</p>
-                    <p style="margin-top: 1rem; font-size: 0.9rem;">
-                        לדוגמה: "אני רוצה לבנות אפליקציית e-commerce עם מיליון משתמשים"
+                    <h2>ברוכים הבאים! 👋</h2>
+                    <p>שאל שאלה וקבל תשובות מכמה מודלים.</p>
+                    <p>כל מודל רואה את התשובות הקודמות ובונה עליהן.</p>
+                    <p style="margin-top: 1rem; color: #666; font-size: 0.9rem;">
+                        לדוגמה: "מהי הדרך הטובה ביותר ללמוד תכנות?"
                     </p>
                 </div>
             </div>
@@ -145,44 +357,261 @@
             <div class="input-area">
                 <textarea
                     id="userInput"
-                    placeholder="תאר את הפרויקט שלך..."
-                    onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                    placeholder="כתוב את השאלה שלך כאן..."
+                    onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendQuestion(); }"
                 ></textarea>
-                <button id="sendBtn" onclick="sendMessage()">שלח</button>
+                <button id="sendBtn" onclick="sendQuestion()">🚀 שלח</button>
             </div>
-        </div>
-
-        <div class="sidebar">
-            <h2>מידע על הפרויקט</h2>
-            <div class="info" id="projectInfo">
-                <p><strong>סטטוס:</strong> <span id="status">ממתין להתחלה</span></p>
-                <p><strong>שלב:</strong> <span id="currentNode">-</span></p>
-                <p><strong>ביטחון:</strong> <span id="confidence">0%</span></p>
-            </div>
-
-            <div id="blueprintArea" style="display: none;">
-                <h2>Blueprint</h2>
-                <div id="blueprintContent"></div>
-            </div>
-        </div>
+        </section>
     </main>
 
     <script>
-        // מצב האפליקציה
-        let sessionId = null;
-        const API_BASE = '';  // אותו דומיין
+        // ========== State ==========
+        let models = [];
+        let isProcessing = false;
 
-        // פונקציה למניעת XSS - escape תווים מסוכנים
+        // ========== Init ==========
+        document.addEventListener('DOMContentLoaded', loadModels);
+
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                models = await response.json();
+                renderModelList();
+            } catch (error) {
+                console.error('שגיאה בטעינת מודלים:', error);
+            }
+        }
+
+        function renderModelList() {
+            const container = document.getElementById('modelList');
+            container.innerHTML = models.map((model, index) => `
+                <div class="model-item ${model.available ? '' : 'disabled'}"
+                     data-id="${model.id}"
+                     draggable="${model.available}">
+                    <input type="checkbox"
+                           class="model-checkbox"
+                           ${model.available ? 'checked' : 'disabled'}
+                           onchange="toggleModel('${model.id}')">
+                    <span class="drag-handle">⋮⋮</span>
+                    <span class="model-name">${model.name}</span>
+                    <span class="model-status ${model.available ? 'available' : 'unavailable'}">
+                        ${model.available ? '✓' : '✗'}
+                    </span>
+                </div>
+            `).join('');
+
+            initDragAndDrop();
+        }
+
+        // ========== Drag & Drop ==========
+        function initDragAndDrop() {
+            const container = document.getElementById('modelList');
+            const items = container.querySelectorAll('.model-item:not(.disabled)');
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+            });
+        }
+
+        let draggedItem = null;
+
+        function handleDragStart(e) {
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            draggedItem = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const container = document.getElementById('modelList');
+            const afterElement = getDragAfterElement(container, e.clientY);
+
+            if (afterElement == null) {
+                container.appendChild(draggedItem);
+            } else {
+                container.insertBefore(draggedItem, afterElement);
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            updateModelOrder();
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.model-item:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateModelOrder() {
+            const items = document.querySelectorAll('.model-item');
+            const newOrder = [];
+            items.forEach(item => {
+                const id = item.dataset.id;
+                const model = models.find(m => m.id === id);
+                if (model) newOrder.push(model);
+            });
+            models = newOrder;
+        }
+
+        function toggleModel(modelId) {
+            // מעדכן את ה-checkbox
+            const model = models.find(m => m.id === modelId);
+            if (model) {
+                const checkbox = document.querySelector(`.model-item[data-id="${modelId}"] .model-checkbox`);
+                model.selected = checkbox.checked;
+            }
+        }
+
+        // ========== Chat ==========
+        function getSelectedModels() {
+            const selected = [];
+            document.querySelectorAll('.model-item').forEach(item => {
+                const checkbox = item.querySelector('.model-checkbox');
+                if (checkbox && checkbox.checked) {
+                    selected.push(item.dataset.id);
+                }
+            });
+            return selected;
+        }
+
+        async function sendQuestion() {
+            const input = document.getElementById('userInput');
+            const question = input.value.trim();
+
+            if (!question || isProcessing) return;
+
+            const selectedModels = getSelectedModels();
+            if (selectedModels.length === 0) {
+                alert('בחר לפחות מודל אחד!');
+                return;
+            }
+
+            isProcessing = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            // הסרת מסך פתיחה
+            const welcome = document.querySelector('.welcome');
+            if (welcome) welcome.remove();
+
+            // הוספת השאלה
+            addMessage('user', question);
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question: question,
+                        models: selectedModels
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let modelIndex = 0;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            handleSSEMessage(data, ++modelIndex);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('שגיאה:', error);
+                addMessage('model', `שגיאה: ${error.message}`, 'error', 0);
+            }
+
+            isProcessing = false;
+            document.getElementById('sendBtn').disabled = false;
+        }
+
+        function handleSSEMessage(data, index) {
+            switch (data.type) {
+                case 'processing':
+                    // הוספת הודעת טעינה
+                    const loadingId = `loading-${data.model}`;
+                    addMessage('model', `<span class="loading-dots">מעבד</span>`, data.model, index, loadingId, true);
+                    break;
+
+                case 'response':
+                    // הסרת הודעת טעינה והוספת תשובה
+                    const loadingEl = document.getElementById(`loading-${data.model}`);
+                    if (loadingEl) loadingEl.remove();
+
+                    if (data.success) {
+                        addMessage('model', data.content, data.model, index);
+                    } else {
+                        addMessage('model', `שגיאה: ${data.error}`, data.model, index);
+                    }
+                    break;
+            }
+        }
+
+        function addMessage(type, content, modelName = '', index = 0, id = '', isLoading = false) {
+            const messages = document.getElementById('messages');
+
+            const div = document.createElement('div');
+            div.className = `message ${type} ${isLoading ? 'processing' : ''}`;
+            if (id) div.id = id;
+
+            if (type === 'model') {
+                const htmlContent = isLoading ? content : marked.parse(content);
+                div.innerHTML = `
+                    <div class="message-header">
+                        <span class="model-badge">${modelName}</span>
+                        <span class="message-order">תשובה #${index}</span>
+                    </div>
+                    <div class="message-content">${htmlContent}</div>
+                    ${!isLoading ? '<button class="copy-btn" onclick="copyMessage(this)">העתק</button>' : ''}
+                `;
+            } else {
+                div.innerHTML = `<strong>אתה:</strong> ${escapeHtml(content)}`;
+            }
+
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // פונקציית העתקה ללוח
-        async function copyToClipboard(text, button) {
+        async function copyMessage(button) {
+            const content = button.parentElement.querySelector('.message-content').innerText;
             try {
-                await navigator.clipboard.writeText(text);
+                await navigator.clipboard.writeText(content);
                 button.textContent = 'הועתק!';
                 button.classList.add('copied');
                 setTimeout(() => {
@@ -190,167 +619,7 @@
                     button.classList.remove('copied');
                 }, 2000);
             } catch (err) {
-                // fallback לדפדפנים ישנים
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                const success = document.execCommand('copy');
-                document.body.removeChild(textarea);
-
-                if (success) {
-                    button.textContent = 'הועתק!';
-                    button.classList.add('copied');
-                    setTimeout(() => {
-                        button.textContent = 'העתק';
-                        button.classList.remove('copied');
-                    }, 2000);
-                } else {
-                    button.textContent = 'נכשל';
-                    button.style.borderColor = '#c73e54';
-                    setTimeout(() => {
-                        button.textContent = 'העתק';
-                        button.style.borderColor = '';
-                    }, 2000);
-                }
-            }
-        }
-
-        // הוספת הודעה לצ'אט
-        function addMessage(content, role) {
-            const messages = document.getElementById('messages');
-            // הסרת הודעת ברוכים הבאים
-            const welcome = messages.querySelector('.welcome');
-            if (welcome) welcome.remove();
-
-            const div = document.createElement('div');
-            div.className = `message ${role}`;
-            // תמיכה בסיסית ב-markdown (code blocks) עם הגנה מ-XSS
-            const safeContent = escapeHtml(content);
-            div.innerHTML = safeContent.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre>$2</pre>')
-                                       .replace(/\n/g, '<br>');
-
-            // הוספת כפתור העתק להודעות assistant
-            if (role === 'assistant') {
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-btn';
-                copyBtn.textContent = 'העתק';
-                copyBtn.onclick = () => copyToClipboard(content, copyBtn);
-                div.appendChild(copyBtn);
-            }
-
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        // עדכון מידע הפרויקט
-        function updateInfo(data) {
-            document.getElementById('status').textContent = data.is_done ? 'הושלם' : 'בתהליך';
-            document.getElementById('currentNode').textContent = data.current_node || '-';
-            document.getElementById('confidence').textContent = Math.round((data.confidence_score || 0) * 100) + '%';
-        }
-
-        // הצגת Blueprint עם הגנה מ-XSS
-        function showBlueprint(blueprint) {
-            const area = document.getElementById('blueprintArea');
-            const content = document.getElementById('blueprintContent');
-            area.style.display = 'block';
-
-            let html = '';
-            if (blueprint.architecture_style) {
-                html += `<div class="blueprint-section">
-                    <h3>סגנון ארכיטקטורה</h3>
-                    <p>${escapeHtml(blueprint.architecture_style)}</p>
-                </div>`;
-            }
-            if (blueprint.components && blueprint.components.length) {
-                html += `<div class="blueprint-section">
-                    <h3>רכיבים</h3>
-                    <ul>${blueprint.components.map(c => `<li>${escapeHtml(c.name || c)}</li>`).join('')}</ul>
-                </div>`;
-            }
-            if (blueprint.tech_stack) {
-                html += `<div class="blueprint-section">
-                    <h3>Tech Stack</h3>
-                    <ul>`;
-                for (const [key, val] of Object.entries(blueprint.tech_stack)) {
-                    html += `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(String(val))}</li>`;
-                }
-                html += `</ul></div>`;
-            }
-            content.innerHTML = html || '<p>Blueprint נוצר!</p>';
-        }
-
-        // שליחת הודעה
-        async function sendMessage() {
-            const input = document.getElementById('userInput');
-            const btn = document.getElementById('sendBtn');
-            const message = input.value.trim();
-
-            if (!message) return;
-
-            // הצגת הודעת המשתמש
-            addMessage(message, 'user');
-            input.value = '';
-            btn.disabled = true;
-            btn.classList.add('loading');
-            btn.textContent = 'שולח';
-
-            try {
-                let response;
-                if (!sessionId) {
-                    // יצירת session חדש
-                    response = await fetch(`${API_BASE}/api/sessions`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message })
-                    });
-                } else {
-                    // המשך שיחה
-                    response = await fetch(`${API_BASE}/api/sessions/${sessionId}/chat`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message })
-                    });
-                }
-
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.detail || 'שגיאה בשרת');
-                }
-
-                const data = await response.json();
-                sessionId = data.session_id;
-
-                // הצגת תשובת ה-Agent
-                addMessage(data.response, 'assistant');
-                updateInfo(data);
-
-                // אם יש blueprint, להציג אותו
-                if (data.is_done) {
-                    fetchBlueprint();
-                }
-
-            } catch (error) {
-                addMessage(`שגיאה: ${error.message}`, 'assistant');
-            } finally {
-                btn.disabled = false;
-                btn.classList.remove('loading');
-                btn.textContent = 'שלח';
-            }
-        }
-
-        // שליפת Blueprint
-        async function fetchBlueprint() {
-            if (!sessionId) return;
-            try {
-                const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/blueprint`);
-                if (response.ok) {
-                    const data = await response.json();
-                    showBlueprint(data.blueprint);
-                }
-            } catch (e) {
-                console.error('Failed to fetch blueprint:', e);
+                console.error('שגיאה בהעתקה:', err);
             }
         }
     </script>

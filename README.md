@@ -1,163 +1,152 @@
-# 🏗️ Architect Agent
+# Multi-Model Opinion Flow 🔄
 
-סוכן AI מבוסס **LangGraph** לתכנון ארכיטקטורת תוכנה.
+כלי לקבלת דעות מרובות ממודלי AI מובילים.
+כל מודל מקבל את התשובות הקודמות ובונה עליהן - כך נוצר פתרון משודרג!
 
-## 🎯 מה זה?
+## 🎯 הרעיון
 
-Architect Agent הוא סוכן שמשלב **לוגיקה דטרמיניסטית** (מערכת ניקוד) עם **LLM** (Claude) כדי:
+כשיש בעיה מורכבת ואתה רוצה הרבה דעות:
 
-- לנתח דרישות פרויקט דרך שיחה אינטראקטיבית
-- לזהות קונפליקטים בין דרישות ולהציע פשרות
-- לבחור Pattern ארכיטקטוני מתאים עם ניקוד שקוף
-- להמליץ על Tech Stack
-- לייצר Blueprint מקצועי עם Mermaid diagrams ו-ADRs
+1. **מודל 1** עונה על השאלה
+2. **מודל 2** מקבל את השאלה + תשובת מודל 1 → בונה על זה
+3. **מודל 3** מקבל את השאלה + תשובות 1+2 → משדרג עוד
+4. וכן הלאה...
 
-## 🔄 זרימת העבודה
+לכל מודל יש "כיוון חשיבה" משלו. כשהוא רואה רעיונות של אחרים - הוא מגלה זוויות שלא היה חושב עליהן לבד!
 
-```
-Intake → Priority → Conflict → Deep Dive → Pattern → Feasibility → Blueprint → Critic
-   ↑                                                                              ↓
-   └──────────────────── (אם confidence < 0.7) ────────────────────────────────────┘
-```
+## 📦 מודלים נתמכים
+
+| מודל | חברה | תיאור |
+|------|------|-------|
+| **Claude** | Anthropic | מודל מוביל, מצוין לניתוח |
+| **Gemini** | Google | יכולות multimodal, חלון הקשר גדול |
+| **GPT** | OpenAI | המודל הפופולרי ביותר |
+| **Mistral** | Mistral AI | מודל אירופאי איכותי |
+| **Grok** | xAI | מודל של אילון מאסק |
+| **DeepSeek** | DeepSeek | מודל סיני עם reasoning מתקדם |
+| **Perplexity** | Perplexity | מיוחד לחיפוש ברשת עם מקורות |
 
 ## 🚀 התקנה
 
-### דרישות
-- Python 3.11+
-- MongoDB (Atlas או local)
-- מפתח API של Anthropic
-
-### שלבים
-
 ```bash
 # Clone
-git clone <repo-url>
+git clone https://github.com/amirbiron/architect-agent.git
 cd architect-agent
 
-# Virtual environment
-python -m venv venv
-source venv/bin/activate  # או venv\Scripts\activate ב-Windows
-
-# Dependencies
+# התקנת תלויות
 pip install -r requirements.txt
 
-# Environment
+# הגדרת API keys
 cp .env.example .env
-# ערוך את .env עם ה-credentials שלך
-
-# Run
-uvicorn src.api.main:app --reload
+# ערוך את .env והוסף את המפתחות שלך
 ```
 
-## 📡 API Endpoints
+## ⚙️ הגדרת API Keys
 
-| Method | Endpoint | תיאור |
-|--------|----------|-------|
-| POST | `/api/v1/sessions` | יצירת session חדש |
-| GET | `/api/v1/sessions/{id}` | פרטי session |
-| POST | `/api/v1/sessions/{id}/chat` | המשך שיחה |
-| GET | `/api/v1/sessions/{id}/blueprint` | קבלת ה-Blueprint |
-| GET | `/api/v1/patterns` | רשימת Patterns זמינים |
+ערוך את קובץ `.env` והוסף את המפתחות:
 
-### דוגמה
+```env
+# חובה - לפחות אחד
+ANTHROPIC_API_KEY=sk-ant-...    # Claude
+OPENAI_API_KEY=sk-...           # GPT
+
+# אופציונלי - המודלים הנוספים
+GEMINI_API_KEY=AI...
+MISTRAL_API_KEY=...
+GROK_API_KEY=xai-...
+DEEPSEEK_API_KEY=sk-...
+PERPLEXITY_API_KEY=pplx-...
+```
+
+## 💻 שימוש
+
+### ממשק Web (מומלץ)
 
 ```bash
-# יצירת session חדש
-curl -X POST http://localhost:8000/api/v1/sessions \
-  -H "Content-Type: application/json" \
-  -d '{"message": "אני רוצה לבנות מערכת e-commerce עם 100K משתמשים"}'
+# הפעלת השרת
+uvicorn src.api.main:app --reload
 
-# המשך שיחה
-curl -X POST http://localhost:8000/api/v1/sessions/{session_id}/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "התקציב שלי $2000 לחודש"}'
+# פתח בדפדפן
+# http://localhost:8000
 ```
 
-## 🧠 מערכת הניקוד
+### CLI
 
-הסוכן משתמש במערכת ניקוד דטרמיניסטית:
+```bash
+# מצב אינטראקטיבי
+python main.py
 
+# שאלה בודדת
+python main.py -q "מה הדרך הטובה ביותר ללמוד Python?"
+
+# בחירת מודלים ספציפיים
+python main.py -q "שאלה" -m claude gpt gemini
+
+# שמירה לקובץ
+python main.py -q "שאלה" -o output.md
+
+# רשימת מודלים זמינים
+python main.py --list
 ```
-Base Score = Σ (Pattern_Score[criterion] × User_Weight[criterion])
 
-Final Score = Base Score + Constraint_Adjustments
-```
+## 🌐 ממשק Web
 
-### קריטריונים
-- Time to Market (0-100)
-- Cost (0-100)
-- Scale (0-100)
-- Reliability (0-100)
-- Security (0-100)
-
-### פרופילים מוכנים
-- `MVP_FAST` - מהירות מעל הכל
-- `COST_FIRST` - חיסכון בעלויות
-- `SCALE_FIRST` - בנייה לסקייל
-- `SECURITY_FIRST` - אבטחה קודמת
+הממשק מאפשר:
+- ✅ בחירת מודלים
+- ✅ גרירה לשינוי סדר
+- ✅ תצוגת תשובות בזמן אמת
+- ✅ פורמט Markdown מעוצב
+- ✅ העתקה ללוח
 
 ## 📁 מבנה הפרויקט
 
 ```
-architect-agent/
+├── main.py                 # CLI
 ├── src/
-│   ├── agent/
-│   │   ├── nodes/          # כל ה-Nodes
-│   │   ├── state.py        # ProjectContext
-│   │   └── graph.py        # LangGraph definition
-│   ├── api/
-│   │   ├── main.py         # FastAPI app
-│   │   └── routes.py       # Endpoints
-│   ├── db/
-│   │   ├── mongodb.py      # Client
-│   │   └── repositories.py # Data access
-│   ├── llm/
-│   │   ├── client.py       # Claude wrapper
-│   │   └── prompts.py      # System prompts
-│   ├── knowledge/
-│   │   ├── patterns.py     # Pattern definitions
-│   │   └── decision_matrix.py  # Scoring logic
-│   └── config.py
-├── tests/
+│   ├── config.py           # הגדרות
+│   ├── flow.py             # הזרימה העיקרית
+│   ├── models/             # מימוש המודלים
+│   │   ├── base.py
+│   │   ├── claude.py
+│   │   ├── gemini.py
+│   │   ├── gpt.py
+│   │   ├── mistral.py
+│   │   ├── grok.py
+│   │   ├── deepseek.py
+│   │   └── perplexity.py
+│   ├── api/                # FastAPI
+│   │   └── main.py
+│   └── static/             # ממשק Web
+│       └── index.html
 ├── requirements.txt
-├── Dockerfile
-├── render.yaml
 └── .env.example
 ```
 
-## 🚢 פריסה ב-Render
+## 🔧 API Endpoints
+
+| Method | Endpoint | תיאור |
+|--------|----------|-------|
+| GET | `/` | ממשק Web |
+| GET | `/api/models` | רשימת מודלים וזמינות |
+| POST | `/api/ask` | שליחת שאלה (SSE streaming) |
+| GET | `/api/health` | בדיקת תקינות |
+
+### דוגמת שימוש ב-API
 
 ```bash
-# עם render CLI
-render blueprint launch
+# בדיקת מודלים זמינים
+curl http://localhost:8000/api/models
 
-# או ידנית:
-# 1. צור Web Service חדש
-# 2. חבר ל-repo
-# 3. הגדר environment variables
-# 4. Deploy!
+# שליחת שאלה
+curl -X POST http://localhost:8000/api/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "מה זה Python?", "models": ["claude", "gpt"]}'
 ```
 
-## 🔧 Environment Variables
-
-| משתנה | תיאור | חובה |
-|-------|-------|------|
-| `MONGODB_URI` | Connection string | ✅ |
-| `ANTHROPIC_API_KEY` | מפתח Claude API | ✅ |
-| `MONGODB_DB_NAME` | שם ה-database | ❌ |
-| `MAX_ITERATIONS` | מקסימום איטרציות | ❌ |
-| `MIN_CONFIDENCE` | סף ביטחון מינימלי | ❌ |
-
-## 🧪 טסטים
-
-```bash
-pytest tests/ -v
-```
-
-## 📄 License
+## 📝 רישיון
 
 MIT
 
 ---
 
-נבנה עם ❤️ ו-LangGraph
+נבנה עם ❤️ ו-AI

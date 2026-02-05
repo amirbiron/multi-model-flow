@@ -1,58 +1,52 @@
-# ================================
-# Architect Agent - Render Blueprint
-# ================================
-# Deploy with: render blueprint launch
+# Multi-Model Opinion Flow - Render Deployment
+# https://render.com/docs/blueprint-spec
 
 services:
-  # Main API Service
   - type: web
-    name: architect-agent-api
-    env: docker
-    dockerfilePath: ./Dockerfile
-    plan: starter  # או free
-    healthCheckPath: /health
+    name: multi-model-flow
+    runtime: python
+    region: frankfurt  # אירופה - קרוב לישראל
+    plan: free  # או starter לביצועים טובים יותר
+
+    # Build
+    buildCommand: pip install -r requirements.txt
+
+    # Start
+    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+
+    # Health Check
+    healthCheckPath: /api/health
+
+    # Environment Variables - הגדר ב-Render Dashboard
     envVars:
-      # MongoDB
-      - key: MONGODB_URI
-        sync: false  # Set manually in dashboard
-      - key: MONGODB_DB_NAME
-        value: architect_agent
-
-      # Claude API
+      # Claude (Anthropic)
       - key: ANTHROPIC_API_KEY
-        sync: false  # Set manually in dashboard
+        sync: false  # יוגדר ידנית ב-Dashboard
 
-      # App settings
-      - key: APP_NAME
-        value: Architect Agent
-      - key: DEBUG
-        value: "false"
-      - key: LOG_LEVEL
-        value: INFO
+      # Gemini (Google)
+      - key: GEMINI_API_KEY
+        sync: false
 
-      # Agent settings
-      - key: MAX_ITERATIONS
-        value: "5"
-      - key: MIN_CONFIDENCE
-        value: "0.7"
+      # GPT (OpenAI)
+      - key: OPENAI_API_KEY
+        sync: false
 
-      # CORS - update with your frontend URL
-      - key: CORS_ORIGINS
-        value: "*"
+      # Mistral
+      - key: MISTRAL_API_KEY
+        sync: false
 
-    # Auto-deploy on push
-    autoDeploy: true
+      # Grok (xAI)
+      - key: GROK_API_KEY
+        sync: false
 
-    # Scaling (for paid plans)
-    # scaling:
-    #   minInstances: 1
-    #   maxInstances: 3
-    #   targetMemoryPercent: 80
-    #   targetCPUPercent: 80
+      # DeepSeek
+      - key: DEEPSEEK_API_KEY
+        sync: false
 
-# Optional: Redis for caching
-# databases:
-#   - name: architect-agent-redis
-#     databaseName: architect_cache
-#     plan: free
-#     ipAllowList: []
+      # Perplexity
+      - key: PERPLEXITY_API_KEY
+        sync: false
+
+      # Python settings
+      - key: PYTHONUNBUFFERED
+        value: "1"

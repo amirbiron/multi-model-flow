@@ -1,36 +1,14 @@
-# ===================================
-# Architect Agent - Dependencies
-# ===================================
+# Multi-Model Opinion Flow - Dependencies
 
-# Core Framework
-fastapi==0.109.2
-uvicorn[standard]==0.27.1
-pydantic==2.6.1
-pydantic-settings==2.1.0
+# Web Framework
+fastapi>=0.109.0           # API Server
+uvicorn[standard]>=0.27.0  # ASGI Server
 
-# LangGraph & LLM
-# תיקון: langgraph 0.0.43 דורש langchain-core>=0.1.46
-langgraph==0.0.43
-langchain-anthropic==0.1.4
-langchain-core==0.1.46
-anthropic==0.18.1
-
-# Gemini (אופציונלי - להחלפת Claude)
-google-genai>=1.0.0
-
-# Database
-motor==3.3.2
-pymongo==4.6.1
-
-# Optional: Redis for caching
-redis==5.0.1
+# LLM SDKs
+anthropic>=0.40.0          # Claude
+google-generativeai>=0.8.0  # Gemini
+openai>=1.50.0             # GPT, Grok, DeepSeek, Perplexity
+mistralai>=1.0.0           # Mistral
 
 # Utilities
-python-dotenv==1.0.1
-httpx==0.26.0
-tenacity==8.2.3
-
-# Development
-# תיקון: pytest-asyncio 0.23.4 דורש pytest<8, לכן משתמשים ב-7.4.4
-pytest==7.4.4
-pytest-asyncio==0.23.4
+python-dotenv>=1.0.0       # טעינת .env

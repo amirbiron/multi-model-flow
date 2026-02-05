@@ -1,76 +1,137 @@
 """
-Architect Agent - FastAPI Application
-======================================
-Main application entry point with lifespan management.
+Multi-Model Opinion Flow - FastAPI Server
 """
-from fastapi import FastAPI
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from contextlib import asynccontextmanager
-import logging
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
 from pathlib import Path
+import asyncio
+import json
 
-from .routes import router
-from ..db.mongodb import MongoDB
-from ..config import settings
-
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifecycle management for startup and shutdown."""
-    # Startup
-    logger.info("Starting Architect Agent API...")
-    await MongoDB.connect()
-    yield
-    # Shutdown
-    logger.info("Shutting down Architect Agent API...")
-    await MongoDB.disconnect()
-
+from ..flow import MultiModelFlow
+from ..config import config, get_models_with_status
 
 app = FastAPI(
-    title="Architect Agent API",
-    description="AI-powered software architecture advisor using LangGraph",
-    version=settings.APP_VERSION,
-    lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    title="Multi-Model Opinion Flow",
+    description="קבל דעות מרובות ממודלים מובילים",
+    version="1.0.0"
 )
 
-# CORS middleware
+# CORS - מאפשר גישה מכל מקום בפיתוח
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
-# Include routes
-app.include_router(router, prefix="/api")
-
-# נתיב לתיקיית הקבצים הסטטיים
+# נתיב לקבצים סטטיים
 STATIC_DIR = Path(__file__).parent.parent / "static"
 
 
+# ========== Models ==========
+
+class QuestionRequest(BaseModel):
+    """בקשה לשאלה"""
+    question: str
+    models: list[str] | None = None  # אופציונלי - רשימת מודלים בסדר הרצוי
+
+
+class ModelInfo(BaseModel):
+    """מידע על מודל"""
+    id: str
+    name: str
+    available: bool
+
+
+# ========== Routes ==========
+
 @app.get("/")
 async def root():
-    """מחזיר את דף הבית (ממשק הווב)."""
+    """דף הבית - ממשק המשתמש"""
     return FileResponse(STATIC_DIR / "index.html")
 
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    db_ok = await MongoDB.ping()
+@app.get("/api/models")
+async def get_models() -> list[ModelInfo]:
+    """מחזיר רשימת כל המודלים וזמינותם"""
+    return [
+        ModelInfo(id=model_id, name=name, available=available)
+        for model_id, name, available in get_models_with_status()
+    ]
+
+
+@app.post("/api/ask")
+async def ask_question(request: QuestionRequest):
+    """
+    שולח שאלה למודלים ומחזיר תשובות ב-streaming.
+    כל תשובה נשלחת כ-Server-Sent Event.
+    """
+    flow = MultiModelFlow(model_order=request.models)
+    available = flow.get_available_models()
+
+    if not available:
+        raise HTTPException(
+            status_code=400,
+            detail="אין מודלים זמינים. הגדר API keys."
+        )
+
+    async def generate_responses():
+        """Generator שמחזיר תשובות כ-SSE"""
+        previous_responses: list[tuple[str, str]] = []
+
+        # שליחת רשימת המודלים שישתתפו
+        yield f"data: {json.dumps({'type': 'start', 'models': available}, ensure_ascii=False)}\n\n"
+
+        for model_name in available:
+            model = flow.models[model_name]
+
+            # הודעה שהתחלנו לעבד מודל
+            yield f"data: {json.dumps({'type': 'processing', 'model': model.name}, ensure_ascii=False)}\n\n"
+
+            # בניית הפרומפט
+            prompt = model._build_chain_prompt(request.question, previous_responses)
+
+            # שליחה למודל
+            response = await model.generate(prompt)
+
+            if response.success:
+                previous_responses.append((model.name, response.content))
+
+            # שליחת התשובה
+            yield f"data: {json.dumps({'type': 'response', 'model': response.model_name, 'content': response.content, 'success': response.success, 'error': response.error}, ensure_ascii=False)}\n\n"
+
+            # השהיה קטנה בין מודלים
+            await asyncio.sleep(0.1)
+
+        # סיום
+        yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        generate_responses(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
+    )
+
+
+@app.get("/api/health")
+async def health():
+    """בדיקת תקינות"""
+    available = config.get_available_models()
     return {
-        "status": "healthy" if db_ok else "degraded",
-        "database": "connected" if db_ok else "disconnected"
+        "status": "ok",
+        "available_models": len(available),
+        "models": available
     }
+
+
+# Mount static files (CSS, JS, etc.)
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
