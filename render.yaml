@@ -6,7 +6,7 @@ services:
     name: multi-model-flow
     runtime: python
     region: frankfurt  # אירופה - קרוב לישראל
-    plan: free  # או starter לביצועים טובים יותר
+    plan: starter  # או starter לביצועים טובים יותר
 
     # Build
     buildCommand: pip install -r requirements.txt
