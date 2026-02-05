@@ -3,6 +3,7 @@
 לחיפוש איכותי ואמין ברשת
 """
 
+import asyncio
 from openai import OpenAI
 from .base import BaseModel, ModelResponse
 
@@ -18,10 +19,9 @@ class PerplexityModel(BaseModel):
     def name(self) -> str:
         return "Perplexity"
 
-    async def generate(self, prompt: str) -> ModelResponse:
-        """שולח prompt ל-Perplexity ומחזיר תשובה עם מקורות"""
+    def _sync_generate(self, prompt: str) -> ModelResponse:
+        """קריאה סינכרונית ל-API"""
         try:
-            # Perplexity משתמש ב-OpenAI-compatible API
             client = OpenAI(
                 api_key=self.api_key,
                 base_url="https://api.perplexity.ai"
@@ -50,3 +50,7 @@ class PerplexityModel(BaseModel):
                 success=False,
                 error=str(e)
             )
+
+    async def generate(self, prompt: str) -> ModelResponse:
+        """שולח prompt ל-Perplexity ומחזיר תשובה (לא חוסם)"""
+        return await asyncio.to_thread(self._sync_generate, prompt)

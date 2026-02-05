@@ -2,6 +2,7 @@
 מודל Mistral AI
 """
 
+import asyncio
 from mistralai import Mistral
 from .base import BaseModel, ModelResponse
 
@@ -13,8 +14,8 @@ class MistralModel(BaseModel):
     def name(self) -> str:
         return "Mistral"
 
-    async def generate(self, prompt: str) -> ModelResponse:
-        """שולח prompt ל-Mistral ומחזיר תשובה"""
+    def _sync_generate(self, prompt: str) -> ModelResponse:
+        """קריאה סינכרונית ל-API"""
         try:
             client = Mistral(api_key=self.api_key)
 
@@ -40,3 +41,7 @@ class MistralModel(BaseModel):
                 success=False,
                 error=str(e)
             )
+
+    async def generate(self, prompt: str) -> ModelResponse:
+        """שולח prompt ל-Mistral ומחזיר תשובה (לא חוסם)"""
+        return await asyncio.to_thread(self._sync_generate, prompt)

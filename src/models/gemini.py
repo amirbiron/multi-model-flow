@@ -2,6 +2,7 @@
 מודל Gemini (Google)
 """
 
+import asyncio
 import google.generativeai as genai
 from .base import BaseModel, ModelResponse
 
@@ -13,8 +14,8 @@ class GeminiModel(BaseModel):
     def name(self) -> str:
         return "Gemini"
 
-    async def generate(self, prompt: str) -> ModelResponse:
-        """שולח prompt ל-Gemini ומחזיר תשובה"""
+    def _sync_generate(self, prompt: str) -> ModelResponse:
+        """קריאה סינכרונית ל-API"""
         try:
             genai.configure(api_key=self.api_key)
             model = genai.GenerativeModel(self.model_id)
@@ -34,3 +35,7 @@ class GeminiModel(BaseModel):
                 success=False,
                 error=str(e)
             )
+
+    async def generate(self, prompt: str) -> ModelResponse:
+        """שולח prompt ל-Gemini ומחזיר תשובה (לא חוסם)"""
+        return await asyncio.to_thread(self._sync_generate, prompt)

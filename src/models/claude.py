@@ -2,6 +2,7 @@
 מודל Claude (Anthropic)
 """
 
+import asyncio
 import anthropic
 from .base import BaseModel, ModelResponse
 
@@ -13,8 +14,8 @@ class ClaudeModel(BaseModel):
     def name(self) -> str:
         return "Claude"
 
-    async def generate(self, prompt: str) -> ModelResponse:
-        """שולח prompt ל-Claude ומחזיר תשובה"""
+    def _sync_generate(self, prompt: str) -> ModelResponse:
+        """קריאה סינכרונית ל-API"""
         try:
             client = anthropic.Anthropic(api_key=self.api_key)
 
@@ -26,7 +27,6 @@ class ClaudeModel(BaseModel):
                 ]
             )
 
-            # חילוץ התוכן מהתשובה
             content = message.content[0].text
 
             return ModelResponse(
@@ -42,3 +42,7 @@ class ClaudeModel(BaseModel):
                 success=False,
                 error=str(e)
             )
+
+    async def generate(self, prompt: str) -> ModelResponse:
+        """שולח prompt ל-Claude ומחזיר תשובה (לא חוסם)"""
+        return await asyncio.to_thread(self._sync_generate, prompt)

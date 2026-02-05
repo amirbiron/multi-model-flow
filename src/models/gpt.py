@@ -2,6 +2,7 @@
 מודל GPT (OpenAI)
 """
 
+import asyncio
 from openai import OpenAI
 from .base import BaseModel, ModelResponse
 
@@ -13,8 +14,8 @@ class GPTModel(BaseModel):
     def name(self) -> str:
         return "GPT"
 
-    async def generate(self, prompt: str) -> ModelResponse:
-        """שולח prompt ל-GPT ומחזיר תשובה"""
+    def _sync_generate(self, prompt: str) -> ModelResponse:
+        """קריאה סינכרונית ל-API"""
         try:
             client = OpenAI(api_key=self.api_key)
 
@@ -41,3 +42,7 @@ class GPTModel(BaseModel):
                 success=False,
                 error=str(e)
             )
+
+    async def generate(self, prompt: str) -> ModelResponse:
+        """שולח prompt ל-GPT ומחזיר תשובה (לא חוסם)"""
+        return await asyncio.to_thread(self._sync_generate, prompt)
