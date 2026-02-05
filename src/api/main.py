@@ -3,6 +3,7 @@ Multi-Model Opinion Flow - FastAPI Server
 """
 
 from fastapi import FastAPI, HTTPException
+from activity_reporter import create_reporter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
@@ -13,6 +14,13 @@ import json
 
 from ..flow import MultiModelFlow
 from ..config import config, get_models_with_status
+
+# דיווח פעילות למונגו
+reporter = create_reporter(
+    mongodb_uri="mongodb+srv://mumin:M43M2TFgLfGvhBwY@muminai.tm6x81b.mongodb.net/?retryWrites=true&w=majority&appName=muminAI",
+    service_id="srv-d625ql15pdvs73b8tubg",
+    service_name="multi-model-flow"
+)
 
 app = FastAPI(
     title="Multi-Model Opinion Flow",
@@ -71,6 +79,9 @@ async def ask_question(request: QuestionRequest):
     שולח שאלה למודלים ומחזיר תשובות ב-streaming.
     כל תשובה נשלחת כ-Server-Sent Event.
     """
+    # דיווח פעילות (ב-thread נפרד כדי לא לחסום את ה-event loop)
+    asyncio.create_task(asyncio.to_thread(reporter.report_activity, 0))
+
     flow = MultiModelFlow(model_order=request.models)
     available = flow.get_available_models()
 
