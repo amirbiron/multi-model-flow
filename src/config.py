@@ -26,7 +26,7 @@ class Config:
 
     # Gemini
     gemini_api_key: Optional[str] = None
-    gemini_model: str = "gemini-2.5-pro-preview-05-06"
+    gemini_model: str = "gemini-2.0-flash"  # מודל מהיר ויציב
 
     # OpenAI (GPT)
     openai_api_key: Optional[str] = None

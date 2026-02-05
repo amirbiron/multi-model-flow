@@ -1,8 +1,10 @@
 """
 מודל Gemini (Google)
+משתמש ב-SDK החדש google-genai
 """
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from .base import BaseModel, ModelResponse
 
 
@@ -16,10 +18,15 @@ class GeminiModel(BaseModel):
     async def generate(self, prompt: str) -> ModelResponse:
         """שולח prompt ל-Gemini ומחזיר תשובה"""
         try:
-            genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel(self.model_id)
+            client = genai.Client(api_key=self.api_key)
 
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=self.model_id,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=4096,
+                )
+            )
 
             return ModelResponse(
                 content=response.text,

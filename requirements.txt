@@ -6,7 +6,7 @@ uvicorn[standard]>=0.27.0  # ASGI Server
 
 # LLM SDKs
 anthropic>=0.40.0          # Claude
-google-generativeai>=0.8.0  # Gemini
+google-genai>=1.0.0        # Gemini (SDK חדש)
 openai>=1.50.0             # GPT, Grok, DeepSeek, Perplexity
 mistralai>=1.0.0           # Mistral
 
