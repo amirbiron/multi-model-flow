@@ -48,6 +48,13 @@ class Config:
     perplexity_api_key: Optional[str] = None
     perplexity_model: str = "sonar-pro"
 
+    # Qwen (Alibaba Cloud / DashScope)
+    qwen_api_key: Optional[str] = None
+    # ברירת מחדל לפי הבקשה - ניתן לשינוי בקוד/בעתיד דרך קונפיג
+    qwen_model: str = "qwen3-max-2026-01-23"
+    # DashScope OpenAI-Compatible base URL
+    qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
     @classmethod
     def from_env(cls) -> "Config":
         """טעינת הגדרות ממשתני סביבה"""
@@ -59,6 +66,11 @@ class Config:
             grok_api_key=os.getenv("GROK_API_KEY"),
             deepseek_api_key=os.getenv("DEEPSEEK_API_KEY"),
             perplexity_api_key=os.getenv("PERPLEXITY_API_KEY"),
+            qwen_api_key=os.getenv("QWEN_API_KEY"),
+            qwen_base_url=os.getenv(
+                "QWEN_BASE_URL",
+                "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            ),
         )
 
     def get_available_models(self) -> list[str]:
@@ -78,6 +90,8 @@ class Config:
             available.append("deepseek")
         if self.perplexity_api_key:
             available.append("perplexity")
+        if self.qwen_api_key:
+            available.append("qwen")
         return available
 
 
@@ -95,6 +109,7 @@ MODELS_REGISTRY = [
     ("grok", "Grok (xAI)"),
     ("deepseek", "DeepSeek Reasoner"),
     ("perplexity", "Perplexity (Sonar)"),
+    ("qwen", "Qwen (Alibaba Cloud)"),
 ]
 
 
@@ -111,6 +126,7 @@ def get_models_with_status() -> list[tuple[str, str, bool]]:
         "grok": config.grok_api_key,
         "deepseek": config.deepseek_api_key,
         "perplexity": config.perplexity_api_key,
+        "qwen": config.qwen_api_key,
     }
 
     return [

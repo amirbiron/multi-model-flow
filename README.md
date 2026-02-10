@@ -25,6 +25,7 @@
 | **Grok** | xAI | מודל של אילון מאסק |
 | **DeepSeek** | DeepSeek | מודל סיני עם reasoning מתקדם |
 | **Perplexity** | Perplexity | מיוחד לחיפוש ברשת עם מקורות |
+| **Qwen** | Alibaba Cloud | מודל Qwen דרך API תואם-OpenAI |
 
 ## 🚀 התקנה
 
@@ -56,6 +57,9 @@ MISTRAL_API_KEY=...
 GROK_API_KEY=xai-...
 DEEPSEEK_API_KEY=sk-...
 PERPLEXITY_API_KEY=pplx-...
+QWEN_API_KEY=sk-...
+# אופציונלי: שינוי base_url תואם OpenAI (ברירת מחדל DashScope)
+QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 ```
 
 ## 💻 שימוש

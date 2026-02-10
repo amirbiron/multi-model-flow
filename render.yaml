@@ -47,6 +47,12 @@ services:
       - key: PERPLEXITY_API_KEY
         sync: false
 
+      # Qwen (Alibaba Cloud / DashScope)
+      - key: QWEN_API_KEY
+        sync: false
+      - key: QWEN_BASE_URL
+        sync: false
+
       # Python settings
       - key: PYTHONUNBUFFERED
         value: "1"

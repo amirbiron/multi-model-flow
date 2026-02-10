@@ -17,6 +17,7 @@ from .models import (
     GrokModel,
     DeepSeekModel,
     PerplexityModel,
+    QwenModel,
 )
 from .models.base import ModelResponse
 
@@ -51,6 +52,7 @@ class MultiModelFlow:
         "grok",
         "deepseek",
         "perplexity",
+        "qwen",
     ]
 
     def __init__(self, model_order: Optional[list[str]] = None):
@@ -113,6 +115,14 @@ class MultiModelFlow:
             self.models["perplexity"] = PerplexityModel(
                 api_key=config.perplexity_api_key,
                 model_id=config.perplexity_model
+            )
+
+        # Qwen (Alibaba Cloud / DashScope)
+        if config.qwen_api_key:
+            self.models["qwen"] = QwenModel(
+                api_key=config.qwen_api_key,
+                model_id=config.qwen_model,
+                base_url=config.qwen_base_url
             )
 
     def get_available_models(self) -> list[str]:
