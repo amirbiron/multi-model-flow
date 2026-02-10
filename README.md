@@ -26,6 +26,7 @@
 | **DeepSeek** | DeepSeek | מודל סיני עם reasoning מתקדם |
 | **Perplexity** | Perplexity | מיוחד לחיפוש ברשת עם מקורות |
 | **Qwen** | Alibaba Cloud | מודל Qwen דרך API תואם-OpenAI |
+| **Manus** | Manus | מודל Manus דרך API תואם-OpenAI |
 
 ## 🚀 התקנה
 
@@ -60,6 +61,9 @@ PERPLEXITY_API_KEY=pplx-...
 QWEN_API_KEY=sk-...
 # אופציונלי: שינוי base_url תואם OpenAI (ברירת מחדל DashScope)
 QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+MANUS_API_KEY=sk-...
+# חובה: base_url תואם OpenAI של Manus
+MANUS_BASE_URL=https://.../v1
 ```
 
 ## 💻 שימוש

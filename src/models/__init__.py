@@ -11,6 +11,7 @@ from .grok import GrokModel
 from .deepseek import DeepSeekModel
 from .perplexity import PerplexityModel
 from .qwen import QwenModel
+from .manus import ManusModel
 
 __all__ = [
     "BaseModel",
@@ -22,4 +23,5 @@ __all__ = [
     "DeepSeekModel",
     "PerplexityModel",
     "QwenModel",
+    "ManusModel",
 ]
