@@ -53,6 +53,12 @@ services:
       - key: QWEN_BASE_URL
         sync: false
 
+      # Manus (OpenAI-compatible)
+      - key: MANUS_API_KEY
+        sync: false
+      - key: MANUS_BASE_URL
+        sync: false
+
       # Python settings
       - key: PYTHONUNBUFFERED
         value: "1"

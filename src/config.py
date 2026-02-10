@@ -55,6 +55,12 @@ class Config:
     # DashScope OpenAI-Compatible base URL
     qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
+    # Manus (OpenAI-compatible)
+    manus_api_key: Optional[str] = None
+    manus_model: str = "manus-1.6"
+    # אין ברירת מחדל כדי לא לנחש כתובת שגויה – חובה להגדיר אם רוצים להפעיל
+    manus_base_url: str = ""
+
     @classmethod
     def from_env(cls) -> "Config":
         """טעינת הגדרות ממשתני סביבה"""
@@ -71,6 +77,8 @@ class Config:
                 "QWEN_BASE_URL",
                 "https://dashscope.aliyuncs.com/compatible-mode/v1"
             ),
+            manus_api_key=os.getenv("MANUS_API_KEY"),
+            manus_base_url=os.getenv("MANUS_BASE_URL", ""),
         )
 
     def get_available_models(self) -> list[str]:
@@ -92,6 +100,8 @@ class Config:
             available.append("perplexity")
         if self.qwen_api_key:
             available.append("qwen")
+        if self.manus_api_key and self.manus_base_url:
+            available.append("manus")
         return available
 
 
@@ -110,6 +120,7 @@ MODELS_REGISTRY = [
     ("deepseek", "DeepSeek Reasoner"),
     ("perplexity", "Perplexity (Sonar)"),
     ("qwen", "Qwen (Alibaba Cloud)"),
+    ("manus", "Manus"),
 ]
 
 
@@ -127,6 +138,8 @@ def get_models_with_status() -> list[tuple[str, str, bool]]:
         "deepseek": config.deepseek_api_key,
         "perplexity": config.perplexity_api_key,
         "qwen": config.qwen_api_key,
+        # Manus דורש גם base_url כדי להיחשב זמין
+        "manus": config.manus_api_key if config.manus_base_url else None,
     }
 
     return [
