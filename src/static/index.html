@@ -391,17 +391,20 @@
         async function copyMarkdownToClipboard(markdownText) {
             const text = (markdownText ?? '').toString();
 
-            // ניסיון מתקדם: כתיבה עם כמה MIME types (אם נתמך)
+            // ניסיון מתקדם: clipboard.write + ClipboardItem (לא מוסיפים MIME לא סטנדרטי כדי לא לשבור דפדפנים)
             if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
-                const plainBlob = new Blob([text], { type: 'text/plain' });
-                const mdBlob = new Blob([text], { type: 'text/markdown' });
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        'text/plain': plainBlob,
-                        'text/markdown': mdBlob
-                    })
-                ]);
-                return;
+                try {
+                    const plainBlob = new Blob([text], { type: 'text/plain' });
+                    await navigator.clipboard.write([
+                        new ClipboardItem({
+                            'text/plain': plainBlob
+                        })
+                    ]);
+                    return;
+                } catch (err) {
+                    // אם זה נכשל (הרשאות/תמיכה חלקית), נמשיך ל-fallback הבא
+                    console.warn('clipboard.write נכשל, ממשיכים ל-fallback:', err);
+                }
             }
 
             // fallback סטנדרטי
