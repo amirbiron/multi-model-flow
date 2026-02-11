@@ -387,6 +387,42 @@
         let models = [];
         let isProcessing = false;
 
+        // העתקה ללוח - נעדיף לשים את המארקדאון עצמו בתור text/plain כדי שלא "יאבד" בהדבקה
+        async function copyMarkdownToClipboard(markdownText) {
+            const text = (markdownText ?? '').toString();
+
+            // ניסיון מתקדם: כתיבה עם כמה MIME types (אם נתמך)
+            if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+                const plainBlob = new Blob([text], { type: 'text/plain' });
+                const mdBlob = new Blob([text], { type: 'text/markdown' });
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/plain': plainBlob,
+                        'text/markdown': mdBlob
+                    })
+                ]);
+                return;
+            }
+
+            // fallback סטנדרטי
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+                return;
+            }
+
+            // fallback ישן (למקרים נדירים מאוד)
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.top = '-1000px';
+            ta.style.left = '-1000px';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+
         // ========== Init ==========
         document.addEventListener('DOMContentLoaded', loadModels);
 
@@ -633,6 +669,8 @@
 
             if (type === 'model') {
                 const htmlContent = isLoading ? content : marked.parse(content);
+                // שמירת המארקדאון המקורי על האלמנט, כדי שכפתורי העתקה יעבדו במארקדאון ולא בטקסט מרונדר
+                if (!isLoading) div._markdown = content;
                 div.innerHTML = `
                     <div class="message-header">
                         <span class="model-badge">${modelName}</span>
@@ -642,6 +680,8 @@
                     ${!isLoading ? '<button class="copy-btn" onclick="copyMessage(this)">העתק</button>' : ''}
                 `;
             } else {
+                // שמירת טקסט השאלה המקורי (נוח להעתק הכל)
+                div._text = content;
                 div.innerHTML = `<strong>אתה:</strong> ${escapeHtml(content)}`;
             }
 
@@ -656,9 +696,13 @@
         }
 
         async function copyMessage(button) {
-            const content = button.parentElement.querySelector('.message-content').innerText;
             try {
-                await navigator.clipboard.writeText(content);
+                const messageEl = button.closest('.message');
+                const markdown = (messageEl && typeof messageEl._markdown === 'string')
+                    ? messageEl._markdown
+                    : (button.parentElement.querySelector('.message-content')?.innerText ?? '');
+
+                await copyMarkdownToClipboard(markdown);
                 button.textContent = 'הועתק!';
                 button.classList.add('copied');
                 setTimeout(() => {
@@ -673,30 +717,32 @@
         async function copyAllResponses() {
             const messages = document.querySelectorAll('.message');
             let markdown = '# Multi-Model Opinion Flow\n\n';
-            let currentQuestion = '';
 
             messages.forEach(msg => {
                 if (msg.classList.contains('user')) {
                     // שאלת המשתמש
-                    currentQuestion = msg.innerText.replace('אתה: ', '');
-                    markdown += `## השאלה:\n${currentQuestion}\n\n---\n\n`;
+                    const question = (typeof msg._text === 'string' ? msg._text : msg.textContent)
+                        .replace(/^אתה:\s*/, '');
+                    markdown += `## השאלה:\n${question}\n\n---\n\n`;
                 } else if (msg.classList.contains('model') && !msg.classList.contains('processing')) {
                     // תשובת מודל
                     const modelBadge = msg.querySelector('.model-badge');
                     const orderBadge = msg.querySelector('.message-order');
-                    const content = msg.querySelector('.message-content');
 
-                    if (modelBadge && content) {
+                    if (modelBadge) {
                         const modelName = modelBadge.innerText;
                         const orderText = orderBadge ? ` (${orderBadge.innerText})` : '';
                         markdown += `### ${modelName}${orderText}\n\n`;
-                        markdown += content.innerText + '\n\n---\n\n';
+                        const responseMarkdown = (typeof msg._markdown === 'string')
+                            ? msg._markdown
+                            : (msg.querySelector('.message-content')?.innerText ?? '');
+                        markdown += responseMarkdown + '\n\n---\n\n';
                     }
                 }
             });
 
             try {
-                await navigator.clipboard.writeText(markdown);
+                await copyMarkdownToClipboard(markdown);
                 const btn = document.getElementById('copyAllBtn');
                 btn.textContent = '✅ הועתק!';
                 setTimeout(() => {
