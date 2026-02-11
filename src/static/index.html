@@ -388,17 +388,20 @@
         let isProcessing = false;
 
         // העתקה ללוח - נעדיף לשים את המארקדאון עצמו בתור text/plain כדי שלא "יאבד" בהדבקה
+        // חוזר true אם הצליח, וזורק שגיאה אם כל השיטות נכשלו (כדי שה-UI ידע להציג כישלון).
         async function copyMarkdownToClipboard(markdownText) {
             const text = (markdownText ?? '').toString();
+            let lastError = null;
 
             // fallback סטנדרטי (בדרך כלל דורש HTTPS/localhost והרשאות מתאימות)
             if (navigator.clipboard?.writeText) {
                 try {
                     await navigator.clipboard.writeText(text);
-                    return;
+                    return true;
                 } catch (err) {
                     // אם זה נכשל (למשל HTTP/הרשאות), נמשיך ל-fallback הישן
                     console.warn('clipboard.writeText נכשל, ממשיכים ל-fallback:', err);
+                    lastError = err;
                 }
             }
 
@@ -408,11 +411,25 @@
             ta.style.position = 'fixed';
             ta.style.top = '-1000px';
             ta.style.left = '-1000px';
+
             document.body.appendChild(ta);
-            ta.focus();
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
+            try {
+                ta.focus();
+                ta.select();
+
+                if (typeof document.execCommand !== 'function') {
+                    throw lastError ?? new Error('document.execCommand לא נתמך בדפדפן זה');
+                }
+
+                const ok = document.execCommand('copy');
+                if (!ok) {
+                    throw lastError ?? new Error('העתקה נכשלה (execCommand החזיר false)');
+                }
+
+                return true;
+            } finally {
+                document.body.removeChild(ta);
+            }
         }
 
         // ========== Init ==========
