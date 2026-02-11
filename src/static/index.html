@@ -391,26 +391,15 @@
         async function copyMarkdownToClipboard(markdownText) {
             const text = (markdownText ?? '').toString();
 
-            // ניסיון מתקדם: clipboard.write + ClipboardItem (לא מוסיפים MIME לא סטנדרטי כדי לא לשבור דפדפנים)
-            if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+            // fallback סטנדרטי (בדרך כלל דורש HTTPS/localhost והרשאות מתאימות)
+            if (navigator.clipboard?.writeText) {
                 try {
-                    const plainBlob = new Blob([text], { type: 'text/plain' });
-                    await navigator.clipboard.write([
-                        new ClipboardItem({
-                            'text/plain': plainBlob
-                        })
-                    ]);
+                    await navigator.clipboard.writeText(text);
                     return;
                 } catch (err) {
-                    // אם זה נכשל (הרשאות/תמיכה חלקית), נמשיך ל-fallback הבא
-                    console.warn('clipboard.write נכשל, ממשיכים ל-fallback:', err);
+                    // אם זה נכשל (למשל HTTP/הרשאות), נמשיך ל-fallback הישן
+                    console.warn('clipboard.writeText נכשל, ממשיכים ל-fallback:', err);
                 }
-            }
-
-            // fallback סטנדרטי
-            if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(text);
-                return;
             }
 
             // fallback ישן (למקרים נדירים מאוד)
@@ -724,8 +713,10 @@
             messages.forEach(msg => {
                 if (msg.classList.contains('user')) {
                     // שאלת המשתמש
-                    const question = (typeof msg._text === 'string' ? msg._text : msg.textContent)
-                        .replace(/^אתה:\s*/, '');
+                    // אם יש לנו את הטקסט הגולמי (_text), לא נוגעים בו כדי לא למחוק בטעות "אתה:" ששייך לתוכן
+                    const question = (typeof msg._text === 'string')
+                        ? msg._text
+                        : ((msg.textContent ?? '').trim().replace(/^אתה:\s*/, ''));
                     markdown += `## השאלה:\n${question}\n\n---\n\n`;
                 } else if (msg.classList.contains('model') && !msg.classList.contains('processing')) {
                     // תשובת מודל
