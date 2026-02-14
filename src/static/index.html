@@ -619,23 +619,60 @@
                 });
 
                 const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let modelIndex = 0;
+                // שימוש ב-stream=true כדי לא לשבור תווי UTF-8 בין chunks
+                const decoder = new TextDecoder('utf-8');
+                // buffer שמחזיק שאריות שורה שלא הושלמה עדיין (chunk באמצע שורה)
+                let buffer = '';
+
+                // שמירה על אינדקס יציב לכל מודל (processing/response) כדי שהמספור לא יקפוץ
+                const modelToIndex = new Map();
+                let responseIndex = 0;
+
+                const getIndexForMessage = (data) => {
+                    if (!data || !data.model) return 0;
+                    if (!modelToIndex.has(data.model)) {
+                        modelToIndex.set(data.model, ++responseIndex);
+                    }
+                    return modelToIndex.get(data.model);
+                };
+
+                const processLine = (line) => {
+                    // SSE יכול להגיע עם \r\n
+                    if (line.endsWith('\r')) line = line.slice(0, -1);
+                    if (!line) return;
+
+                    // תומך גם ב-"data:" וגם ב-"data: "
+                    if (!line.startsWith('data:')) return;
+                    const payload = line.startsWith('data: ') ? line.slice(6) : line.slice(5).trimStart();
+
+                    try {
+                        const data = JSON.parse(payload);
+                        handleSSEMessage(data, getIndexForMessage(data));
+                    } catch (e) {
+                        // אם משהו עדיין משתבש, נדפיס את ה-payload כדי שיהיה אפשר לאבחן
+                        console.error('שגיאת פרסור SSE JSON:', e, { payload });
+                        addMessage('model', `שגיאה: ${e.message}`, 'error', 0);
+                    }
+                };
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
+                    buffer += decoder.decode(value, { stream: true });
 
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = JSON.parse(line.slice(6));
-                            handleSSEMessage(data, ++modelIndex);
-                        }
+                    // מעבדים רק שורות שלמות. אם chunk מסתיים באמצע שורה - משאירים ב-buffer.
+                    let newlineIndex;
+                    while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                        const line = buffer.slice(0, newlineIndex);
+                        buffer = buffer.slice(newlineIndex + 1);
+                        processLine(line);
                     }
                 }
+
+                // flush לשאריות הדקודר + עיבוד שארית buffer אם קיימת
+                buffer += decoder.decode();
+                if (buffer) processLine(buffer);
             } catch (error) {
                 console.error('שגיאה:', error);
                 addMessage('model', `שגיאה: ${error.message}`, 'error', 0);
