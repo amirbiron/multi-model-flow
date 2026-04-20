@@ -12,7 +12,7 @@ stack:
   - FastAPI
   - Uvicorn
   - Anthropic SDK (Claude)
-  - OpenAI SDK (GPT, Grok, DeepSeek, Perplexity)
+  - OpenAI SDK (GPT, Grok, Perplexity)
   - Google Generative AI SDK (Gemini)
   - Mistral AI SDK
   - Vanilla JavaScript
@@ -21,7 +21,7 @@ stack:
 
 key_features:
   - זרימה סדרתית – כל מודל מקבל את התשובות של המודלים הקודמים
-  - "9 מודלים נתמכים: Claude, GPT, Gemini, Mistral, Grok, DeepSeek, Perplexity, Qwen, Manus"
+  - "6 מודלים נתמכים: Claude, GPT, Gemini, Mistral, Grok, Perplexity"
   - ממשק Web עם Drag-and-Drop לשינוי סדר מודלים
   - Streaming בזמן אמת (SSE)
   - העתקת תשובות בודדות או כולן (Markdown)
@@ -53,17 +53,17 @@ setup:
     4. uvicorn src.api.main:app --reload
     5. פתח http://localhost:8000
 
-your_role: "פיתוח מלא – ארכיטקטורה, אינטגרציה ל-9 מודלי AI, ממשק Web, CLI, deployment"
+your_role: "פיתוח מלא – ארכיטקטורה, אינטגרציה ל-6 מודלי AI, ממשק Web, CLI, deployment"
 
 tradeoffs:
   - זרימה סדרתית (לא מקבילית) – כל מודל חייב לחכות לקודם, מה שמאט אך מאפשר העשרה
   - Frontend ב-vanilla JS – פשוט ומהיר, ללא framework
-  - OpenAI SDK משותף לכמה ספקים (Grok, DeepSeek, Perplexity) דרך base_url שונה
+  - OpenAI SDK משותף לכמה ספקים (Grok, Perplexity) דרך base_url שונה
 
 metrics: "" # TODO: בדוק ידנית
 
 faq:
-  - q: "צריך מפתחות API לכל 9 המודלים?"
+  - q: "צריך מפתחות API לכל 6 המודלים?"
     a: "לא – רק מודלים שיש להם מפתח API מוגדר ב-.env יופעלו. השאר מושבתים אוטומטית."
   - q: "אפשר לשנות את סדר המודלים?"
     a: "כן – בממשק Web אפשר לגרור ולשחרר כדי לשנות סדר, ובCLI עם הדגל -m."

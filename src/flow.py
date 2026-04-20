@@ -15,10 +15,7 @@ from .models import (
     GPTModel,
     MistralModel,
     GrokModel,
-    DeepSeekModel,
     PerplexityModel,
-    QwenModel,
-    ManusModel,
 )
 from .models.base import ModelResponse
 
@@ -51,10 +48,7 @@ class MultiModelFlow:
         "gpt",
         "mistral",
         "grok",
-        "deepseek",
         "perplexity",
-        "qwen",
-        "manus",
     ]
 
     def __init__(self, model_order: Optional[list[str]] = None):
@@ -105,34 +99,11 @@ class MultiModelFlow:
                 model_id=config.grok_model
             )
 
-        # DeepSeek
-        if config.deepseek_api_key:
-            self.models["deepseek"] = DeepSeekModel(
-                api_key=config.deepseek_api_key,
-                model_id=config.deepseek_model
-            )
-
         # Perplexity
         if config.perplexity_api_key:
             self.models["perplexity"] = PerplexityModel(
                 api_key=config.perplexity_api_key,
                 model_id=config.perplexity_model
-            )
-
-        # Qwen (Alibaba Cloud / DashScope)
-        if config.qwen_api_key:
-            self.models["qwen"] = QwenModel(
-                api_key=config.qwen_api_key,
-                model_id=config.qwen_model,
-                base_url=config.qwen_base_url
-            )
-
-        # Manus (OpenAI-compatible)
-        if config.manus_api_key and config.manus_base_url:
-            self.models["manus"] = ManusModel(
-                api_key=config.manus_api_key,
-                model_id=config.manus_model,
-                base_url=config.manus_base_url
             )
 
     def get_available_models(self) -> list[str]:
