@@ -3,8 +3,8 @@
   "repo": "https://github.com/amirbiron/multi-model-flow",
   "tags": ["python", "fastapi", "ai", "llm", "claude", "gpt", "gemini", "mistral", "sse", "multi-model"],
   "highlights": [
-    "זרימה סדרתית של 9 מודלי AI עם prompt chaining – כל מודל בונה על התשובות הקודמות",
-    "אינטגרציה ל-Claude, GPT, Gemini, Mistral, Grok, DeepSeek, Perplexity, Qwen ו-Manus",
+    "זרימה סדרתית של 6 מודלי AI עם prompt chaining – כל מודל בונה על התשובות הקודמות",
+    "אינטגרציה ל-Claude, GPT, Gemini, Mistral, Grok ו-Perplexity",
     "ממשק Web אינטראקטיבי עם Drag-and-Drop וסטרימינג בזמן אמת (SSE)",
     "מצב CLI עם תמיכה באינטראקטיבי, שאלה בודדת ושמירה לקובץ",
     "תמיכה RTL מלאה וערכת צבעים כהה"

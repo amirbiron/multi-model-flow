@@ -38,28 +38,11 @@ class Config:
 
     # Grok (xAI)
     grok_api_key: Optional[str] = None
-    grok_model: str = "grok-2-latest"
-
-    # DeepSeek
-    deepseek_api_key: Optional[str] = None
-    deepseek_model: str = "deepseek-reasoner"
+    grok_model: str = "grok-4-fast"
 
     # Perplexity
     perplexity_api_key: Optional[str] = None
     perplexity_model: str = "sonar-pro"
-
-    # Qwen (Alibaba Cloud / DashScope)
-    qwen_api_key: Optional[str] = None
-    # ברירת מחדל לפי הבקשה - ניתן לשינוי בקוד/בעתיד דרך קונפיג
-    qwen_model: str = "qwen3-max-2026-01-23"
-    # DashScope OpenAI-Compatible base URL
-    qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-
-    # Manus (OpenAI-compatible)
-    manus_api_key: Optional[str] = None
-    manus_model: str = "manus-1.6"
-    # אין ברירת מחדל כדי לא לנחש כתובת שגויה – חובה להגדיר אם רוצים להפעיל
-    manus_base_url: str = ""
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -70,15 +53,7 @@ class Config:
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             mistral_api_key=os.getenv("MISTRAL_API_KEY"),
             grok_api_key=os.getenv("GROK_API_KEY"),
-            deepseek_api_key=os.getenv("DEEPSEEK_API_KEY"),
             perplexity_api_key=os.getenv("PERPLEXITY_API_KEY"),
-            qwen_api_key=os.getenv("QWEN_API_KEY"),
-            qwen_base_url=os.getenv(
-                "QWEN_BASE_URL",
-                "https://dashscope.aliyuncs.com/compatible-mode/v1"
-            ),
-            manus_api_key=os.getenv("MANUS_API_KEY"),
-            manus_base_url=os.getenv("MANUS_BASE_URL", ""),
         )
 
     def get_available_models(self) -> list[str]:
@@ -94,14 +69,8 @@ class Config:
             available.append("mistral")
         if self.grok_api_key:
             available.append("grok")
-        if self.deepseek_api_key:
-            available.append("deepseek")
         if self.perplexity_api_key:
             available.append("perplexity")
-        if self.qwen_api_key:
-            available.append("qwen")
-        if self.manus_api_key and self.manus_base_url:
-            available.append("manus")
         return available
 
 
@@ -117,10 +86,7 @@ MODELS_REGISTRY = [
     ("gpt", "GPT (OpenAI)"),
     ("mistral", "Mistral AI"),
     ("grok", "Grok (xAI)"),
-    ("deepseek", "DeepSeek Reasoner"),
     ("perplexity", "Perplexity (Sonar)"),
-    ("qwen", "Qwen (Alibaba Cloud)"),
-    ("manus", "Manus"),
 ]
 
 
@@ -135,11 +101,7 @@ def get_models_with_status() -> list[tuple[str, str, bool]]:
         "gpt": config.openai_api_key,
         "mistral": config.mistral_api_key,
         "grok": config.grok_api_key,
-        "deepseek": config.deepseek_api_key,
         "perplexity": config.perplexity_api_key,
-        "qwen": config.qwen_api_key,
-        # Manus דורש גם base_url כדי להיחשב זמין
-        "manus": config.manus_api_key if config.manus_base_url else None,
     }
 
     return [

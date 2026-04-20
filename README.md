@@ -23,10 +23,7 @@
 | **GPT** | OpenAI | המודל הפופולרי ביותר |
 | **Mistral** | Mistral AI | מודל אירופאי איכותי |
 | **Grok** | xAI | מודל של אילון מאסק |
-| **DeepSeek** | DeepSeek | מודל סיני עם reasoning מתקדם |
 | **Perplexity** | Perplexity | מיוחד לחיפוש ברשת עם מקורות |
-| **Qwen** | Alibaba Cloud | מודל Qwen דרך API תואם-OpenAI |
-| **Manus** | Manus | מודל Manus דרך API תואם-OpenAI |
 
 ## 🚀 התקנה
 
@@ -56,14 +53,7 @@ OPENAI_API_KEY=sk-...           # GPT
 GEMINI_API_KEY=AI...
 MISTRAL_API_KEY=...
 GROK_API_KEY=xai-...
-DEEPSEEK_API_KEY=sk-...
 PERPLEXITY_API_KEY=pplx-...
-QWEN_API_KEY=sk-...
-# אופציונלי: שינוי base_url תואם OpenAI (ברירת מחדל DashScope)
-QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-MANUS_API_KEY=sk-...
-# חובה: base_url תואם OpenAI של Manus
-MANUS_BASE_URL=https://.../v1
 ```
 
 ## 💻 שימוש
@@ -120,7 +110,6 @@ python main.py --list
 │   │   ├── gpt.py
 │   │   ├── mistral.py
 │   │   ├── grok.py
-│   │   ├── deepseek.py
 │   │   └── perplexity.py
 │   ├── api/                # FastAPI
 │   │   └── main.py
